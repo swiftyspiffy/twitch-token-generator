@@ -63,7 +63,7 @@ if($detect->isMobile()) {
 			<? else: ?>
 			<input type="text" class="form-control" id="token" style="text-align: center; font-size: 120%;" placeholder="Token will appear here..." disabled>
 			<? endif; ?>
-			<span><i>As a security precaution, this tool does NOT store your access token. You will need to generate a new token if you've lost your current one.<i></span>
+			<span><i>As a security precaution, this tool does NOT store your access token. You will need to generate a new token if you've lost your current one.</i></span>
 		</div>
 	</div>
 	
@@ -150,6 +150,26 @@ if($detect->isMobile()) {
 					<td class="text-center"><code>channel_feed_edit</code></td>
 					<td class="text-center">Ability to add posts and reactions to a channel feed.</td>
 				</tbody>
+				<tbody id="available_tokens">
+					<td class="text-center"><code><input id="check_collections_edit" type="checkbox"></code></td>
+					<td class="text-center"><code>collections_edit</code></td>
+					<td class="text-center">Manage a user's collections (of videos).</td>
+				</tbody>
+				<tbody id="available_tokens">
+					<td class="text-center"><code><input id="check_communities_edit" type="checkbox"></code></td>
+					<td class="text-center"><code>communities_edit</code></td>
+					<td class="text-center">Manage a user's communities.</td>
+				</tbody>
+				<tbody id="available_tokens">
+					<td class="text-center"><code><input id="check_communities_moderate" type="checkbox"></code></td>
+					<td class="text-center"><code>communities_moderate</code></td>
+					<td class="text-center">Manage communitiy moderators.</td>
+				</tbody>
+				<tbody id="available_tokens">
+					<td class="text-center"><code><input id="check_viewing_activity_read" type="checkbox"></code></td>
+					<td class="text-center"><code>viewing_activity_read</code></td>
+					<td class="text-center">Turn on Viewer Heartbeat Service ability to record user data.</td>
+				</tbody>
 			</table>
 			<div class="row">
 				<div class="col-md-2"></div>
@@ -180,4 +200,5 @@ ga('send', 'pageview');
 var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 /* --- Runtime PHP Generated JS Vars START -- */
 </script>
+
 </html>
