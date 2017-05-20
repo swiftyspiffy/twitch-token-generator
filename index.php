@@ -172,11 +172,14 @@ if($detect->isMobile()) {
 				</tbody>
 			</table>
 			<div class="row">
-				<div class="col-md-2"></div>
-				<button type = "button" class = "col-md-3 btn btn-danger" onclick="clearScopeSelections();">Reset Scope Selections</button>
-				<div class="col-md-2"></div>
-				<button type = "button" class = "col-md-3 btn btn-success" onclick="authenticate();">Generate Token!</button>
-				<div class="col-md-2"></div>
+				<div class="col-md-1"></div>
+				<div class="btn-group mr-2 col-md-2">
+					<button type = "button" class = "btn btn-danger" onclick="clearScopeSelections();">Reset All</button>
+					<button type = "button" class = "btn btn-success" onclick="selectAllScopes();">Select All</button>
+				</div>
+				<div class="col-md-1"></div>
+				<button type = "button" class = "col-md-7 btn btn-success" onclick="authenticate();">Generate Token!</button>
+				<div class="col-md-1"></div>
 			</div>
 		</div>
 	</div>
@@ -200,5 +203,4 @@ ga('send', 'pageview');
 var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 /* --- Runtime PHP Generated JS Vars START -- */
 </script>
-
 </html>
