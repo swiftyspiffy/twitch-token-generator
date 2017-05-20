@@ -35,9 +35,8 @@ if($detect->isMobile()) {
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js"></script>
 	<script src="bootstrap-checkbox.min.js"></script>
 	<script src="script.js"></script>
-	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-	<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="stylesheet" href="style.css">
+	<link rel="icon" type="image/ico" sizes="48x48" href="/favicon-48x48.ico">
 </head>
 <div class="col-md-2"></div>
 <div class="container col-md-8">	
