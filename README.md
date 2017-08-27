@@ -1,7 +1,7 @@
-# TwitchTokenGenerator
+# TwitchTokenGenerator.com
 [https://twitchtokengenerator.com](https://twitchtokengenerator.com)
 
-![Image of site](http://i.imgur.com/lt1QP7R.png)
+![Image of site](http://i.imgur.com/boWfK8h.png)
 
 ### Overview
 A simple tool to generate access tokens for Twitch with custom scopes. Good tool for testing various Twitch third party tools (like [swiftyspiffy/TwitchLib](https://github.com/swiftyspiffy/twitchlib)).
