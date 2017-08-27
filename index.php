@@ -25,6 +25,9 @@ if($detect->isMobile()) {
 
 <!DOCTYPE html>
 <html lang="en">
+<script>
+	var token = "<? if (strlen($access_token) > 1) echo $access_token; ?>"
+</script>
 <head>
 	<title>Twitch Token Generator by swiftyspiffy</title>
 	<meta charset="utf-8">
@@ -38,6 +41,37 @@ if($detect->isMobile()) {
 	<link rel="stylesheet" href="style.css">
 	<link rel="icon" type="image/ico" sizes="48x48" href="/favicon-48x48.ico">
 </head>
+<div class="modal fade" id="requestModal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+		<div class="row">
+			<div class="col-md-6">
+				<h5 class="modal-title">Request Token From User</h5>
+			</div>
+			<div class="col-md-6 pull-right">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+		</div>
+      </div>
+      <div class="modal-body">
+		<p>This system allows you to request a token from a Twitch user via a link. Using the scopes you selected, a link will be generated. You can share the link with a streamer or Twitch user. After they approve, their Twitch token will be emailed to you. Please provide your Twitch name and email address below.</p>
+		<label for="my_name">My Twitch Name:</label>
+		<input type="text" class="form-control" id="my_name">
+		<label for="my_email">My Email (to send token to):</label>
+		<input type="text" class="form-control" id="my_email">
+      </div>
+      <div class="modal-footer" style="padding-top: 12px;" >
+		<div class="row" style="padding-left: 15px; padding-right: 15px;" >
+			<button type="button" class="btn btn-success col-md-12 pull-left" onclick="fetchRequestUrl()" id="generate_link">Generate Link</button>
+		</div>
+        
+      </div>
+    </div>
+  </div>
+</div>
 <div class="col-md-2"></div>
 <div class="container col-md-8">	
 	<br>
@@ -65,7 +99,7 @@ if($detect->isMobile()) {
 			<span><i>As a security precaution, this tool does NOT store your access token. You will need to generate a new token if you've lost your current one.</i></span>
 		</div>
 	</div>
-	
+
 	<div class="panel panel-primary">
 		<div class="panel-heading">
 			<h3 class="panel-title text-center">Available Token Scopes</h3>
@@ -172,18 +206,29 @@ if($detect->isMobile()) {
 			</table>
 			<div class="row">
 				<div class="col-md-1"></div>
-				<div class="btn-group mr-2 col-md-2">
+				<div class="btn-group mr-2 col-md-3">
 					<button type = "button" class = "btn btn-danger" onclick="clearScopeSelections();">Reset All</button>
 					<button type = "button" class = "btn btn-success" onclick="selectAllScopes();">Select All</button>
 				</div>
+				<button type = "button" class = "col-md-2 btn btn-primary" onclick="launchRequestModal();">Request Token!</button>
 				<div class="col-md-1"></div>
-				<button type = "button" class = "col-md-7 btn btn-success" onclick="authenticate();">Generate Token!</button>
+				<button type = "button" class = "col-md-4 btn btn-success" onclick="authenticate();">Generate Token!</button>
 				<div class="col-md-1"></div>
 			</div>
 		</div>
 	</div>
+
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title text-center">TwitchTokenGenerator.com Statistics <span class="label label-success">NEW</span></h3>
+        </div>
+        <div class="panel-body text-center">
+            <span>All available anonymized service statistics can be found at the following link: <a target="_blank" class="twitch-link" href="https://twitchtokengenerator.com/stats">https://twitchtokengenerator.com/stats</a></span>
+        </div>
+    </div>
+
 	<div class="row text-center">
-		<span><i>Website Source: <a href="https://github.com/swiftyspiffy/twitch-token-generator" target="_blank">Repo</a><br>This tool was created and is maintained by swiftyspiffy. <br><a href="https://twitch.tv/swiftyspiffy" target="_blank">Twitch</a> | <a href="https://twitter.com/swiftyspiffy" target="_blank">Twitter</a> | <a href="https://github.com/swiftyspiffy" target="_blank">GitHub</a><i></span>
+		<span><i>Website Source: <a class="twitch-link" href="https://github.com/swiftyspiffy/twitch-token-generator" target="_blank">Repo</a><br>This tool was created and is maintained by swiftyspiffy. <br><a class="twitch-link" href="https://twitch.tv/swiftyspiffy" target="_blank">Twitch</a> | <a class="twitch-link" href="https://twitter.com/swiftyspiffy" target="_blank">Twitter</a> | <a href="https://github.com/swiftyspiffy" class="twitch-link" target="_blank">GitHub</a><i></span>
 	</div>
 	<br><br>
 </div>
