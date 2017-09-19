@@ -41,6 +41,38 @@ if($detect->isMobile()) {
 	<link rel="stylesheet" href="style.css">
 	<link rel="icon" type="image/ico" sizes="48x48" href="/favicon-48x48.ico">
 </head>
+<div class="modal fade" id="welcomeModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="modal-title">Welcome to TwitchTokenGenerator.com</h5>
+                    </div>
+                    <div class="col-md-6 pull-right">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body text-center">
+                <span class="text-center" style="font-size: 120%;">I am here to get a...</span><br><br>
+                <div class="btn-group" role="group" style="width: 100%;">
+                    <button type="button" onclick="wantsBotToken();" style="width: 50%;" class="btn btn-default">
+                        <img src="https://twitchtokengenerator.com/img/destructoid.png" height="110"><br>
+                        <span style="font-weight: bold; font-size: 150%;">Bot Chat Token</span>
+                    </button>
+                    <button type="button" style="width: 50%;" data-dismiss="modal" aria-label="Close" class="btn btn-default">
+                        <img src="https://twitchtokengenerator.com/img/giveplz.png" height="110"><br>
+                        <span style="font-weight: bold; font-size: 150%;">Custom Scope Token</span>
+                    </button>
+                </div><br><br>
+                <a href="#" data-dismiss="modal" aria-label="Close" style="color: #6441A4">Uhhhh what? Just take me to the site.</a>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="requestModal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -105,6 +137,7 @@ if($detect->isMobile()) {
 			<h3 class="panel-title text-center">Available Token Scopes</h3>
 		</div>
 		<div class="panel-body">
+            <h3><span class="label label-primary">v5</span></h3>
 			<table id="soundbytes" class="table">
 				<thead>
 					<tr>
@@ -114,9 +147,9 @@ if($detect->isMobile()) {
 					</tr>
 				</thead>
 				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_user_read" type="checkbox"></code></td>
-					<td class="text-center"><code>user_read</code></td>
-					<td class="text-center">Read access to non-public user information, such as email address.</td>
+					<td style="width: 20%;" class="text-center"><code><input id="check_user_read" type="checkbox"></code></td>
+					<td style="width: 20%;" class="text-center"><code>user_read</code></td>
+					<td style="width: 60%;" class="text-center">Read access to non-public user information, such as email address.</td>
 				</tbody>
 				<tbody id="available_tokens">
 					<td class="text-center"><code><input id="check_user_blocks_edit" type="checkbox"></code></td>
@@ -198,12 +231,30 @@ if($detect->isMobile()) {
 					<td class="text-center"><code>communities_moderate</code></td>
 					<td class="text-center">Manage communitiy moderators.</td>
 				</tbody>
+                <tbody id="available_tokens">
+                <td class="text-center"><code><input id="check_openid" type="checkbox"></code></td>
+                <td class="text-center"><code>openid</code></td>
+                <td class="text-center">Use OpenID Connect authentication</td>
+                </tbody>
 				<tbody id="available_tokens">
 					<td class="text-center"><code><input id="check_viewing_activity_read" type="checkbox"></code></td>
 					<td class="text-center"><code>viewing_activity_read</code></td>
 					<td class="text-center">Turn on Viewer Heartbeat Service ability to record user data.</td>
 				</tbody>
 			</table>
+            <h3><span class="label label-primary">Helix</span></h3><br>
+            <table id="soundbytes" class="table">
+                <tbody id="available_tokens">
+                    <td style="width: 20%;" class="text-center"><code><input id="check_helix_user_edit" type="checkbox"></code></td>
+                    <td style="width: 20%;" class="text-center"><code>user:edit</code></td>
+                    <td style="width: 60%;" class="text-center">Manage a user object.</td>
+                </tbody>
+                <tbody id="available_tokens">
+                    <td class="text-center"><code><input id="check_helix_user_read_email" type="checkbox"></code></td>
+                    <td class="text-center"><code>user:read:email</code></td>
+                    <td class="text-center">Read authorized user's email address.</td>
+                </tbody>
+            </table>
 			<div class="row">
 				<div class="col-md-1"></div>
 				<div class="btn-group mr-2 col-md-3">
@@ -227,9 +278,21 @@ if($detect->isMobile()) {
         </div>
     </div>
 
-	<div class="row text-center">
-		<span><i>Website Source: <a class="twitch-link" href="https://github.com/swiftyspiffy/twitch-token-generator" target="_blank">Repo</a><br>This tool was created and is maintained by swiftyspiffy. <br><a class="twitch-link" href="https://twitch.tv/swiftyspiffy" target="_blank">Twitch</a> | <a class="twitch-link" href="https://twitter.com/swiftyspiffy" target="_blank">Twitter</a> | <a href="https://github.com/swiftyspiffy" class="twitch-link" target="_blank">GitHub</a><i></span>
-	</div>
+    <div class="row text-center">
+        <span>
+            <i>Website Source: <a href="https://github.com/swiftyspiffy/twitch-token-generator" target="_blank">Repo</a><br>This tool was created and is maintained by swiftyspiffy. <br>
+                <a href="https://twitch.tv/swiftyspiffy" target="_blank">
+                    <img src="https://twitchtokengenerator.com/img/twitch.png" width="30" height="30">
+                </a>
+                <a href="https://twitter.com/swiftyspiffy" target="_blank">
+                    <img src="https://twitchtokengenerator.com/img/twitter.png" width="45" height="45">
+                </a>
+                <a href="https://github.com/swiftyspiffy" target="_blank">
+                    <img src="https://twitchtokengenerator.com/img/github.png" width="30" height="30">
+                </a>
+            <i>
+        </span>
+    </div>
 	<br><br>
 </div>
 <script>

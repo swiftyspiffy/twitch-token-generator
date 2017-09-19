@@ -1,15 +1,60 @@
 var client_id = "gp762nuuoqcoxypju8c569th9wz7q5";
 var redirect_uri = "https://twitchtokengenerator.com";
 
-var scopes = ["user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read"];
-
+var scopes = ["helix_user_read_email", "helix_user_edit", "openid", "user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read", "user:edit", "user:read:email"];
 
 $( document ).ready(function() {
     console.log( "loaded! enabling custom checkboxes!" );
 	$(':checkbox').checkboxpicker();
 	console.log( "checking and selecting checkboxes that are in querystring." );
-	applyScopeParam();
+	if(window.location.hash) {
+		var requestUrl = "https://twitchtokengenerator.com/request/" + window.location.hash.replace("#", "") + "/" + token;
+		window.location.href = requestUrl;
+	} else {
+		applyScopeParam();
+	}
+
+	if(!authSuccessful) {
+	    launchWelcomeModal();
+    }
 });
+
+function launchRequestModal() {
+	$('#requestModal').modal("show");
+}
+
+function launchWelcomeModal() {
+    $('#welcomeModal').modal("show");
+}
+
+function fetchRequestUrl() {
+	var name = $('#my_name').val();
+	var email = $('#my_email').val();
+	var scopes = gatherScopeSelections();
+	var scopeString = "";
+	scopes.forEach(function(scope) {
+		if(scopeString == "")
+			scopeString = scope;
+		else
+			scopeString += "+" + scope;
+	});
+	$.ajax({
+		url: "https://twitchtokengenerator.com/request/create.php",
+		method: "POST",
+		data: { scopes: scopeString, my_name: name, my_email: email },
+		dataType: "json",
+		context: document.body
+	}).done(function(data) {
+		if(data.success) {
+			$('#generate_link').replaceWith('<input type="text" class="form-control col-md-10 pull-left" id="generated_link" style="padding-left: 15px; padding-right: 15px;" readonly>')
+			$("#generated_link").val(data.message);
+		} else {
+			alert(data.message);
+		}
+	}).error(function(data) {
+		console.log("ERROR: " + data);
+	});
+}
 
 function applyScopeParam() {
 	var params = getUrlVars();
@@ -21,6 +66,12 @@ function applyScopeParam() {
 			$('#check_' + activeScope).prop('checked', true);
 		});
 	}
+}
+
+function selectAllScopes() {
+	scopes.forEach(function(scope) {
+		$('#check_' + scope).prop('checked', true);
+	});
 }
 
 function clearScopeSelections() {
@@ -52,8 +103,14 @@ function authenticate() {
 function gatherScopeSelections() {
 	var selectedScopes = [];
 	scopes.forEach(function(scope) {
-		if($('#check_' + scope).is(':checked'))
-			selectedScopes.push(scope);
+		if($('#check_' + scope).is(':checked')) {
+			var scopeStr = scope;
+			if(scope.includes("helix_")) {
+				scopeStr = scopeStr.substring(6);
+				scopeStr = scopeStr.replaceAll("_", ":");
+			}
+			selectedScopes.push(scopeStr);
+		}
 	});
 	return selectedScopes;
 }
@@ -71,3 +128,14 @@ function getUrlVars()
     }
     return vars;
 }
+
+function wantsBotToken() {
+    $('#check_chat_login').prop('checked', true);
+    authenticate();
+}
+
+// Source: https://stackoverflow.com/questions/1144783/how-to-replace-all-occurrences-of-a-string-in-javascript
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.replace(new RegExp(search, 'g'), replacement);
+};

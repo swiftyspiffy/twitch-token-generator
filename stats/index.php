@@ -13,11 +13,12 @@
     <link rel="stylesheet" href="../style.css">
     <link rel="icon" type="image/ico" sizes="48x48" href="../favicon-48x48.ico">
 </head>
+
 <div class="col-md-2"></div>
 <div class="container col-md-8">
     <br>
     <h5>
-        <a href="https://twitchtokengenerator.com">Take me back to TwitchTokenGenerator.com</a>
+        <a href="https://twitchtokengenerator.com" style="color: #6441A4">Take me back to TwitchTokenGenerator.com</a>
     </h5>
     <br>
     <div class="panel panel-primary">
@@ -28,14 +29,29 @@
             <span>Below are statics gathered through usage of the tool. The only data tracked is the popularity of scopes as well as total tool consumption. No personal info is associated with this data.</span>
 
         <div class="row">
-            <div class="col-md-12">
-                <canvas id="scope-chart" width="800" height="450"></canvas>
+            <div class="col-md-6">
+                <canvas id="scope-chart" width="800" height="800"></canvas>
+            </div>
+            <div class="col-md-6">
+                <canvas id="region-chart" width="800" height="800"></canvas>
             </div>
         </div>
         </div>
     </div>
     <div class="row text-center">
-        <span><i>Website Source: <a href="https://github.com/swiftyspiffy/twitch-token-generator" target="_blank">Repo</a><br>This tool was created and is maintained by swiftyspiffy. <br><a href="https://twitch.tv/swiftyspiffy" target="_blank">Twitch</a> | <a href="https://twitter.com/swiftyspiffy" target="_blank">Twitter</a> | <a href="https://github.com/swiftyspiffy" target="_blank">GitHub</a><i></span>
+        <span>
+            <i>Website Source: <a href="https://github.com/swiftyspiffy/twitch-token-generator" target="_blank">Repo</a><br>This tool was created and is maintained by swiftyspiffy. <br>
+                <a href="https://twitch.tv/swiftyspiffy" target="_blank">
+                    <img src="https://twitchtokengenerator.com/img/twitch.png" width="30" height="30">
+                </a>
+                <a href="https://twitter.com/swiftyspiffy" target="_blank">
+                    <img src="https://twitchtokengenerator.com/img/twitter.png" width="45" height="45">
+                </a>
+                <a href="https://github.com/swiftyspiffy" target="_blank">
+                    <img src="https://twitchtokengenerator.com/img/github.png" width="30" height="30">
+                </a>
+            <i>
+        </span>
     </div>
     <br><br>
 </div>
