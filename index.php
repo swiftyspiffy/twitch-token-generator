@@ -6,7 +6,9 @@ $detect = new Mobile_Detect;
 $access_token = "";
 if(isset($_GET['code'])) {
 	$twitchtv = new TwitchTV;
-	$access_token = $twitchtv->get_access_token($_GET['code']);
+	$data = $twitchtv->get_access_token($_GET['code']);
+	$access_token = $data['access'];
+	$refresh_token = $data['refresh'];
 }
 
 // redirect to mobile if applicable
@@ -118,17 +120,50 @@ if($detect->isMobile()) {
 	
 	<div class="panel panel-primary">
 		<div class="panel-heading">
-			<h3 class="panel-title text-center">Generated Token</h3>
+			<h3 class="panel-title text-center">Generated Tokens</h3>
 		</div>
 		<div class="panel-body">
 			<? if (strlen($access_token) > 1): ?>
-			<input type="text" class="form-control" id="token" style="text-align: center; font-size: 250%; height: 200%; color: #3a8c15;" value="<? echo $access_token; ?>" placeholder="Token will appear here..." readonly>
+			<table class="table table-striped">
+				<tbody>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $access_token; ?>" placeholder="Access Token will appear here..." disabled></td>
+					</tr>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $refresh_token; ?>" placeholder="Refresh Token will appear here..." disabled></td>
+					</tr>
+				</tbody>
+			</table>
 			<? elseif(isset($_GET['error'])): ?>
-			<input type="text" class="form-control" id="token" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Token will appear here..." disabled>
+			<table class="table table-striped">
+				<tbody>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Access Token will appear here..." disabled></td>
+					</tr>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Refresh Token will appear here..." disabled></td>
+					</tr>
+				</tbody>
+			</table>
 			<? else: ?>
-			<input type="text" class="form-control" id="token" style="text-align: center; font-size: 120%;" placeholder="Token will appear here..." disabled>
+			<table class="table table-striped">
+				<tbody>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 120%;" placeholder="Access Token will appear here..." disabled></td>
+					</tr>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 120%;" placeholder="Refresh Token will appear here..." disabled></td>
+					</tr>
+				</tbody>
+			</table>
 			<? endif; ?>
-			<span><i>As a security precaution, this tool does NOT store your access token. You will need to generate a new token if you've lost your current one.</i></span>
+			<span><i>As a security precaution, this tool does NOT store your tokens. You will need to generate new tokens if you've lost your current ones.</i></span>
 		</div>
 	</div>
 
@@ -249,10 +284,20 @@ if($detect->isMobile()) {
                     <td style="width: 20%;" class="text-center"><code>user:edit</code></td>
                     <td style="width: 60%;" class="text-center">Manage a user object.</td>
                 </tbody>
+                <!--<tbody id="available_tokens">
+                    <td style="width: 20%;" class="text-center"><code><input id="check_helix_user_edit_description" type="checkbox"></code></td>
+                    <td style="width: 20%;" class="text-center"><code>user:edit:description</code></td>
+                    <td style="width: 60%;" class="text-center">Manage a user description.</td>
+                </tbody>-->
                 <tbody id="available_tokens">
                     <td class="text-center"><code><input id="check_helix_user_read_email" type="checkbox"></code></td>
                     <td class="text-center"><code>user:read:email</code></td>
                     <td class="text-center">Read authorized user's email address.</td>
+                </tbody>
+				<tbody id="available_tokens">
+                    <td class="text-center"><code><input id="check_helix_clips_edit" type="checkbox"></code></td>
+                    <td class="text-center"><code>clips:edit</code></td>
+                    <td class="text-center">Create and edit clips as a specific user.</td>
                 </tbody>
             </table>
 			<div class="row">

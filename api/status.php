@@ -14,7 +14,7 @@ if(count($resp) == 0) {
             exit(json_encode(array('success' => false, 'id' => $id, 'error' => 3, 'message' => 'Not authorized yet')));
         case "1":
             expireAPI($id);
-            exit(json_encode(array('success' => true, 'id' => $id, 'scopes' => $resp['scopes'], 'token' => $resp['token'], 'username' => $resp['username'])));
+            exit(json_encode(array('success' => true, 'id' => $id, 'scopes' => $resp['scopes'], 'token' => $resp['token'], 'refresh' => $resp['refresh'], 'username' => $resp['username'])));
         case "2":
             exit(json_encode(array('success' => false, 'id' => $id, 'error' => 4, 'message' => 'API instance has already expired. Created a new one.')));
         default:
@@ -27,17 +27,15 @@ function getStatus($id) {
     die("Could not connect: " . mysql_error());
     mysql_select_db("twitgsvi_logs");
 
-    $ab = mysql_query("SELECT * FROM `API`") or trigger_error(mysql_error());
+    $ab = mysql_query("SELECT * FROM `API` WHERE `unique_string` = '".mysql_real_escape_string($id)."'") or trigger_error(mysql_error());
     while ($row = mysql_fetch_array($ab)) {
-        if($row['unique_string'] == $id) {
-            if($row['status'] != "1") {
-                return array('status' => $row['status']);
-            } else {
-                $scopes = $row['scopes'];
-                $scopesArr = explode(' ', $scopes);
-                return array('status' => "1", 'scopes' => $scopesArr, 'token' => $row['token'], 'username' => $row['username']);
-            }
-        }
+        if($row['status'] != "1") {
+			return array('status' => $row['status']);
+		} else {
+			$scopes = $row['scopes'];
+			$scopesArr = explode(' ', $scopes);
+			return array('status' => "1", 'scopes' => $scopesArr, 'token' => $row['token'], 'refresh' => $row['refresh'], 'username' => $row['username']);
+		}
     }
     return array();
 }

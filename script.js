@@ -1,7 +1,7 @@
 var client_id = "gp762nuuoqcoxypju8c569th9wz7q5";
 var redirect_uri = "https://twitchtokengenerator.com";
 
-var scopes = ["helix_user_read_email", "helix_user_edit", "openid", "user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read", "user:edit", "user:read:email"];
+var scopes = ["helix_clips_edit", "helix_user_read_email", "helix_user_edit", "helix_user_edit_description", "openid", "user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read", "user:edit", "user:read:email", "user:edit:description", "clips:edit"];
 
 $( document ).ready(function() {
     console.log( "loaded! enabling custom checkboxes!" );

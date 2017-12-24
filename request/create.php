@@ -27,7 +27,7 @@ function insertRequest($unique, $scopes, $name, $email) {
 }
 
 function validateScopes($scopes) {
-	$valid_scopes = array("user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read");
+	$valid_scopes = array("user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read", "user:read:email", "user:edit", "clips:edit");
 	
 	$checkScopes = array();
 	if (strpos($scopes, '+') !== false)

@@ -17,11 +17,13 @@ try {
         exit(json_encode(array('success' => false, 'error' => 15, 'message' => 'API flow no longer available! Create a new one!')));
     }
 
-    $access_token = getAccessToken($_GET['code']);
-
+	$data = getCredentials($_GET['code']);
+    $access_token = $data['access'];
+	$refresh_token = $data['refresh'];
+	
     $username = getUsername($access_token);
 
-    updateListing($unique, $access_token, $username);
+    updateListing($unique, $access_token, $refresh_token, $username);
 }catch(Exception $ex) {
 
 }
@@ -76,15 +78,16 @@ function getUsername($token) {
     return $json_decoded_usernameResult['token']['user_name'];
 }
 
-function updateListing($unique, $token, $username) {
+function updateListing($unique, $token, $refresh, $username) {
     mysql_connect(DB_HOST, DB_USER, DB_PASS) or
     die("Could not connect: " . mysql_error());
     mysql_select_db(DB_ANONDATA);
-	// variables dont need to be validated since they're all generated internally
+
+    // variables dont need to be validated since they're all generated internally
     $ab = mysql_query("UPDATE  `DB_ANONDATA`.`API` SET  `status` =  '1', `token` = '".$token."', `username` = '".$username."' WHERE  `api`.`unique_string` ='".$unique."';") or trigger_error(mysql_error());
 }
 
-function getAccessToken($code) {
+function getCredentials($code) {
     $ch = curl_init("https://api.twitch.tv/kraken/" . "oauth2/token");
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -99,6 +102,7 @@ function getAccessToken($code) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
     $data = curl_exec($ch);
     $response = json_decode($data, true);
-    return $response["access_token"];
+    return array('access' => $response["access_token"], 'refresh' => $response['refresh_token']);
 }
+
 ?>

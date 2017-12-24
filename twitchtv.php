@@ -66,7 +66,7 @@ class TwitchTV {
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
 		$data = curl_exec($ch);
 		$response = json_decode($data, true);
-		return $response["access_token"];
+		return array('access' => $response["access_token"], 'refresh' => $response['refresh_token']);
 	}
 
 	/**

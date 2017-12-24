@@ -32,6 +32,9 @@ switch($action) {
     case "success":
         include("success.php");
         break;
+	case "refresh":
+		include("refresh.php");
+		break;
     default:
         $resp = getData($action);
         switch($resp['error']) {

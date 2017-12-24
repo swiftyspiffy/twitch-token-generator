@@ -155,7 +155,12 @@ function getDescription($name) {
 			return "Manage communitiy moderators.";
 		case "viewing_activity_read":
 			return "Turn on Viewer Heartbeat Service ability to record user data.";
-			
+		case "user:read:email":
+			return "Read authorized user's email address.";
+		case "user:edit":
+			return "Manage a user object.";
+		case "clips:edit":
+			return "Create clips under the specified user.";
 		default:
 			return "No information available. Be careful.";
 	}
