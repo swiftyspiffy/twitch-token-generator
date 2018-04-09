@@ -64,7 +64,8 @@ function getStats() {
                     yAxes: [{
                         ticks: {
                             beginAtZero: true
-                        }
+                        },
+						reverse: true
                     }],
                     xAxes: [{
                         ticks: {

@@ -1,12 +1,13 @@
 <?
-$details = getRequestDetails($id);
+$details = $dao->getRequestDetails($id);
 if(count($details) == 0)
 	exit(header("Location: https://twitchtokengenerator.com/"));
 if($details["enabled"] == "0")
 	exit(header("Location: https://twitchtokengenerator.com/"));
 
-fireEmail($details['requester_email'], $details['requester_name'], $token);
-disableRequest($id);
+$username = $dao->getUsername($token);
+fireEmail($details['requester_email'], $details['requester_name'], $token, $refresh, str_replace("+", ", ", $details["scopes_str"]), $username);
+$dao->disableRequest($id);
 ?>
 
 <!DOCTYPE html>
@@ -75,49 +76,14 @@ var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 
 
 <?
-function fireEmail($email, $name, $token) {
+function fireEmail($email, $name, $token, $refresh, $scopes, $username) {
 	$to      = $email;
 	$subject = 'TwitchTokenGenerator.com - Request Successful';
-	$message = 'Hello '.$name."!\n\nYour TwitchTokenGenerator request has been completed successfully!\n\nUsername: ".getUsername($token)."\nToken: ".$token."\n\nCheers,\nswiftyspiffy";
+	$message = 'Hello '.$name."!\n\nYour TwitchTokenGenerator request has been completed successfully!\n\nUsername: ".$username."\nScopes Requested: ".$scopes."\nAccess Token: ".$token."\nRefresh Token: ".$refresh."\n\nCheers,\nswiftyspiffy";
 	$headers = 'From: requests@twitchtokengenerator.com' . "\r\n" .
 		'Reply-To: noreply@twitchtokengenerator.com' . "\r\n" .
 		'X-Mailer: PHP/' . phpversion();
 
 	mail($to, $subject, $message, $headers);
-}
-
-function getUsername($token) {
-    $usernameResult = file_get_contents("https://api.twitch.tv/kraken?oauth_token=" . $token);
-    $json_decoded_usernameResult = json_decode($usernameResult, true);
-    return $json_decoded_usernameResult['token']['user_name'];
-}
-
-function disableRequest($id) {
-	mysql_connect(DB_HOST, DB_USER, DB_PASS) or
-		die("Could not connect: " . mysql_error());
-	mysql_select_db(DB_ANONDATA);
-
-	$ab = mysql_query("UPDATE  `DB_ANONDATA`.`REQUESTS` SET  `enabled` =  '0' WHERE  `REQUESTS`.`unique_string` = '".mysql_real_escape_string($id)."';") or trigger_error(mysql_error());
-}
-
-function getRequestDetails($id) {
-	mysql_connect(DB_HOST, DB_USER, DB_PASS) or
-		die("Could not connect: " . mysql_error());
-	mysql_select_db(DB_ANONDATA);
-
-	$ab = mysql_query("SELECT * FROM `REQUESTS`") or trigger_error(mysql_error());
-	while ($row = mysql_fetch_array($ab)) {
-		if(strtolower($id) == strtolower($row['unique_string'])) {
-			$scopeStr = $row['scopes'];
-			$scopes;
-			if (strpos($scopeStr, '+') !== false)
-				$scopes = explode("+", $scopeStr);
-			else
-				array_push($scopes, $scopeStr);
-			return array("enabled" => $row['enabled'], "scopes_str" => $scopeStr, "scopes" => $scopes, "requester_name" => $row['requester_name'], "requester_email" => $row['requester_email']);
-		}
-		
-	}
-	return array();
 }
 ?>

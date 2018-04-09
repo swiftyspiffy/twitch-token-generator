@@ -1,9 +1,13 @@
 <?php
+include("../dao.php");
 
+header("Access-Control-Allow-Origin: *");
 if(!isset($_GET['id'])) {
     header('Content-Type: application/json');
     exit(json_encode(array('success' => false, 'error' => 5, 'message' => 'No action provided.')));
 }
+
+$dao = new dao();
 
 $action;
 $args = array();
@@ -32,11 +36,11 @@ switch($action) {
     case "success":
         include("success.php");
         break;
-	case "refresh":
-		include("refresh.php");
-		break;
+    case "refresh":
+	include("refresh.php");
+	break;
     default:
-        $resp = getData($action);
+        $resp = $dao->getAPIData($action);
         switch($resp['error']) {
             case 0:
                 $scopes = str_replace(" ", "+", $resp['scopes']);
@@ -46,33 +50,13 @@ switch($action) {
                 exit(header("Location: ".$url));
                 break;
             case 1:
-                header('Content-Type: application/json');
-                exit(json_encode(array('success' => false, 'error' => 6, 'message' => 'Id already used. Try creating new instance.')));
+                include("used.php");
                 break;
             case 2:
-                header('Content-Type: application/json');
-                exit(json_encode(array('success' => false, 'error' => 7, 'message' => 'Id not found.')));
+                include("notfound.php");
                 break;
         }
         break;
-}
-
-function getData($id) {
-    mysql_connect(DB_HOST, DB_USER, DB_PASS) or
-    die("Could not connect: " . mysql_error());
-    mysql_select_db(DB_ANONDATA);
-
-    $ab = mysql_query("SELECT * FROM `API`") or trigger_error(mysql_error());
-    while ($row = mysql_fetch_array($ab)) {
-        if($row['unique_string'] == $id) {
-            if($row['status'] != "0") {
-                return array('error' => 1);
-            } else {
-                return array('error' => 0, 'unique' => $row['unique_string'], 'scopes' => $row['scopes']);
-            }
-        }
-    }
-    return array('error' => 2);
 }
 
 ?>

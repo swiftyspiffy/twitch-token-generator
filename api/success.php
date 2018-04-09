@@ -11,7 +11,7 @@ if(!isset($_GET['state'])) {
 $status;
 try {
     $unique = json_decode(base64_decode($_GET['state']), true)['id'];
-    $status = getStatus($unique);
+    $status = $dao->getAPISuccessStatus($unique);
     if(!$status['available']) {
         header('Content-Type: application/json');
         exit(json_encode(array('success' => false, 'error' => 15, 'message' => 'API flow no longer available! Create a new one!')));
@@ -21,9 +21,12 @@ try {
     $access_token = $data['access'];
 	$refresh_token = $data['refresh'];
 	
-    $username = getUsername($access_token);
+    $username = $dao->getUsername($access_token);
+	$userid = $dao->getUserId($username, $access_token);
 
-    updateListing($unique, $access_token, $refresh_token, $username);
+    $dao->updateAPIListing($unique, $access_token, $refresh_token, $username, $userid);
+
+    $dao->logUsage($_SERVER['REMOTE_ADDR'], $status['scopes'], $dao->getCountry($_SERVER['REMOTE_ADDR']));
 }catch(Exception $ex) {
 
 }
@@ -54,47 +57,14 @@ try {
     exit(json_encode(array('success' => false, 'error' => 11, 'message' => 'API did not succeed, invalid code/state.')));
 endif;
 
-function getStatus($id) {
-    mysql_connect(DB_HOST, DB_USER, DB_PASS) or
-    die("Could not connect: " . mysql_error());
-    mysql_select_db(DB_ANONDATA);
-
-    $ab = mysql_query("SELECT * FROM `API`") or trigger_error(mysql_error());
-    while ($row = mysql_fetch_array($ab)) {
-        if($row['unique_string'] == $id) {
-            if($row['status'] != "0") {
-                return array('available' => false);
-            } else {
-                return array('available' => true, 'title' => $row['title'], 'scopes' => $row['scopes']);
-            }
-        }
-    }
-    return array('available' => false);
-}
-
-function getUsername($token) {
-    $usernameResult = file_get_contents("https://api.twitch.tv/kraken?oauth_token=" . $token);
-    $json_decoded_usernameResult = json_decode($usernameResult, true);
-    return $json_decoded_usernameResult['token']['user_name'];
-}
-
-function updateListing($unique, $token, $refresh, $username) {
-    mysql_connect(DB_HOST, DB_USER, DB_PASS) or
-    die("Could not connect: " . mysql_error());
-    mysql_select_db(DB_ANONDATA);
-
-    // variables dont need to be validated since they're all generated internally
-    $ab = mysql_query("UPDATE  `DB_ANONDATA`.`API` SET  `status` =  '1', `token` = '".$token."', `username` = '".$username."' WHERE  `api`.`unique_string` ='".$unique."';") or trigger_error(mysql_error());
-}
-
 function getCredentials($code) {
     $ch = curl_init("https://api.twitch.tv/kraken/" . "oauth2/token");
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 1);
     $fields = array(
-        'client_id' => "CLIENTID",
-        'client_secret' => "CLIENTSECRET",
+        'client_id' => "zkxgn9qm9y3kzrb1p0px68qa69t3ae",
+        'client_secret' => "vcoad2sha5lw6p05wcbreiiik2t09u",
         'grant_type' => 'authorization_code',
         'redirect_uri' => "https://twitchtokengenerator.com/api/success",
         'code' => $code

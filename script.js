@@ -1,7 +1,8 @@
+var auth_base = "https://id.twitch.tv/oauth2";
 var client_id = "gp762nuuoqcoxypju8c569th9wz7q5";
 var redirect_uri = "https://twitchtokengenerator.com";
 
-var scopes = ["helix_clips_edit", "helix_user_read_email", "helix_user_edit", "helix_user_edit_description", "openid", "user_read", "user_blocks_edit", "user_blocks_read", "user_follows_edit", "channel_read", "channel_editor", "channel_commercial", "channel_stream", "channel_subscriptions", "user_subscriptions", "channel_check_subscription", "chat_login", "channel_feed_read", "channel_feed_edit", "collections_edit", "communities_edit", "communities_moderate", "viewing_activity_read", "user:edit", "user:read:email", "user:edit:description", "clips:edit"];
+var scopes = getScopes();
 
 $( document ).ready(function() {
     console.log( "loaded! enabling custom checkboxes!" );
@@ -12,12 +13,40 @@ $( document ).ready(function() {
 		window.location.href = requestUrl;
 	} else {
 		applyScopeParam();
+		var vars = getUrlVars();
+		if(vars['auth'] != null && vars['auth'] != "") {
+			if(vars['auth'] == "auth_auth") {
+				authenticate();
+				console.log("fired");
+			}
+		}
 	}
 
-	if(!authSuccessful) {
+	if(!authSuccessful && !scopes_set) {
 	    launchWelcomeModal();
     }
 });
+
+var quickLinkToggleType = "auth_stay";
+function toggleQuickLinkAuth(id) {
+	if(id == "quicklink_auth_stay") {
+		$('#quicklink_auth_stay').addClass("btn-primary").removeClass("btn-secondary");
+		$('#quicklink_auth_auth').addClass("btn-secondary").removeClass("btn-primary");
+		quickLinkToggleType = "auth_stay";
+	} else {
+		$('#quicklink_auth_stay').addClass("btn-secondary").removeClass("btn-primary");
+		$('#quicklink_auth_auth').addClass("btn-primary").removeClass("btn-secondary");
+		quickLinkToggleType = "auth_auth";
+	}
+}
+
+function getScopes() {
+	return JSON.parse($.ajax({
+		type: "GET",
+		url: "https://twitchtokengenerator.com/getSupportedScopes.php?type=just_scopes",
+		async: false
+	}).responseText);
+}
 
 function launchRequestModal() {
 	$('#requestModal').modal("show");
@@ -25,6 +54,43 @@ function launchRequestModal() {
 
 function launchWelcomeModal() {
     $('#welcomeModal').modal("show");
+}
+
+var quick_link_scopes;
+function launchQuickLinkModal() {
+	$('#quick_link_permissions').empty();
+	
+	quick_link_scopes = gatherScopeSelections();
+	quick_link_scopes.forEach(function(scope) {
+		$('#quick_link_permissions').append('<li><b>' + scope + '</b></li>');
+	});
+	$('#quickLinkModal').modal('show');
+}
+
+function fetchQuickLinkUrl() {
+	var scopeString = "";
+	quick_link_scopes.forEach(function(scope) {
+		if(scopeString == "")
+			scopeString = scope;
+		else
+			scopeString += "+" + scope;
+	});
+	
+	$.ajax({
+		url: "https://twitchtokengenerator.com/quick/create/" + scopeString + "/" + quickLinkToggleType,
+		method: "POST",
+		dataType: "json",
+		context: document.body
+	}).done(function(data) {
+		if(data.success) {
+			$('#quick_generate_link').replaceWith('<input type="text" class="form-control col-md-10 pull-left" id="quick_generate_link" style="padding-left: 15px; padding-right: 15px;" readonly>')
+			$("#quick_generate_link").val(data.message);
+		} else {
+			alert(data.message);
+		}
+	}).error(function(data) {
+		console.log("ERROR: " + data);
+	});
 }
 
 function fetchRequestUrl() {
@@ -58,29 +124,43 @@ function fetchRequestUrl() {
 
 function applyScopeParam() {
 	var params = getUrlVars();
-	if(params['scope'] != undefined 
-	  && params['scope'].includes("+")
-	  && authSuccessful) {
-		var activeScopes = params['scope'].split("+");
-		activeScopes.forEach(function(activeScope) {
-			$('#check_' + activeScope).prop('checked', true);
-		});
+	if(params['scope'] != undefined) {
+		if(params['scope'].includes("+")) {
+			var activeScopes = params['scope'].split("+");
+			activeScopes.forEach(function(activeScope) {
+				if(activeScope.includes(":") || activeScope.includes("%3A")) {
+					$('#check_helix_' + activeScope.replaceAll(":", "_").replaceAll("%3A", "_")).prop('checked', true);
+				} else {
+					$('#check_' + activeScope.replaceAll(":", "_")).prop('checked', true);
+				}
+			});
+		} else {
+			$('#check_' + params['scope']).prop('checked', true);
+		}
 	}
 }
 
 function selectAllScopes() {
 	scopes.forEach(function(scope) {
-		$('#check_' + scope).prop('checked', true);
+		if(scope.includes(":")) {
+			$('#check_helix_' + scope.replaceAll(":", "_")).prop('checked', true);
+		} else {
+			$('#check_' + scope).prop('checked', true);
+		}
 	});
 }
 
 function clearScopeSelections() {
 	scopes.forEach(function(scope) {
-		$('#check_' + scope).prop('checked', false);
+		if(scope.includes(":")) {
+			$('#check_helix_' + scope.replaceAll(":", "_")).prop('checked', false);
+		} else {
+			$('#check_' + scope).prop('checked', false);
+		}
 	});
 }
 
-function authenticate() {
+function authenticate(force_verify = false) {
 	// get user selected scopes
 	var selectedScopes = gatherScopeSelections();
 	// check at least one scope is set
@@ -97,19 +177,17 @@ function authenticate() {
 			scopeString += "+" + scope;
 	});
 	// redirect to twitch auth
-	window.location = "https://api.twitch.tv/kraken/oauth2/authorize?response_type=code&client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&scope=" + scopeString;
+	window.location = auth_base + "/authorize?response_type=code&client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&scope=" + scopeString + "&force_verify=" + (force_verify ? "true" : "false");
 }
 
 function gatherScopeSelections() {
 	var selectedScopes = [];
 	scopes.forEach(function(scope) {
 		if($('#check_' + scope).is(':checked')) {
-			var scopeStr = scope;
-			if(scope.includes("helix_")) {
-				scopeStr = scopeStr.substring(6);
-				scopeStr = scopeStr.replaceAll("_", ":");
-			}
-			selectedScopes.push(scopeStr);
+			selectedScopes.push(scope);
+		}
+		if(!scope.includes("_") && $('#check_helix_' + scope.replaceAll(":", "_")).is(':checked')) {
+			selectedScopes.push(scope);
 		}
 	});
 	return selectedScopes;
@@ -133,6 +211,54 @@ function wantsBotToken() {
     $('#check_chat_login').prop('checked', true);
     authenticate();
 }
+
+function performRefreshRequest() {
+	var refresh_token = $('#refresh_token_refresh').val();
+	$.ajax({
+		url: "https://twitchtokengenerator.com/api/refresh/" + refresh_token,
+		dataType: "json",
+		context: document.body
+	}).done(function(data) {
+		if(data.success) {
+			$('#refresh_token_refresh').val("");
+			$('#access').attr('style', "text-align: center; font-size: 200%; color: #009900;");
+			$('#refresh').attr('style', "text-align: center; font-size: 200%; color: #009900;"); 
+			$('#access').val(data.token);
+			$('#refresh').val(data.refresh);
+			$("html, body").animate({ scrollTop: 0 }, 500);
+		} else {
+			switch(data.error) {
+				case 22:
+					alert("Invalid refresh token provided!");
+					break;
+				default:
+					alert("Unknown error occurred!");
+					break;
+			}
+		}
+	}).error(function(data) {
+		console.log("ERROR: " + data);
+	});
+}
+
+function copyInput(btn, el) {
+	var copyText = document.getElementById(el);
+	copyText.select();
+	document.execCommand("Copy");
+	$(btn).html("Copied!");
+	delay(function() {
+		$(btn).html("Copy");
+	}, 5000);
+}
+
+// Source: https://stackoverflow.com/a/28173606
+var delay = ( function() {
+    var timer = 0;
+    return function(callback, ms) {
+        clearTimeout (timer);
+        timer = setTimeout(callback, ms);
+    };
+})();
 
 // Source: https://stackoverflow.com/questions/1144783/how-to-replace-all-occurrences-of-a-string-in-javascript
 String.prototype.replaceAll = function(search, replacement) {

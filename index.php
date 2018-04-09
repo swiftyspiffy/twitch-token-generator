@@ -1,7 +1,8 @@
 <?
-require_once 'Mobile_Detect.php';
+include("dao.php");
 include("twitchtv.php");
-$detect = new Mobile_Detect;
+
+$dao = new dao();
 
 $access_token = "";
 if(isset($_GET['code'])) {
@@ -9,25 +10,24 @@ if(isset($_GET['code'])) {
 	$data = $twitchtv->get_access_token($_GET['code']);
 	$access_token = $data['access'];
 	$refresh_token = $data['refresh'];
-}
-
-// redirect to mobile if applicable
-if($detect->isMobile()) {
-	if(strlen($access_token) > 1) {
-		if(isset($_GET['scope']))
-			exit(header("Location: https://twitchtokengenerator.com/mobile/?token=".$access_token."&scope=".urlencode($_GET['scope'])));
-		else
-			exit(header("Location: https://twitchtokengenerator.com/mobile/?token=".$access_token));
-	} else {
-		exit(header("Location: https://twitchtokengenerator.com/mobile/"));
+	// Stats logging
+	if(isset($_GET['scope']))
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $dao->getCountry($_SERVER['REMOTE_ADDR']));
+	else
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $dao->getCountry($_SERVER['REMOTE_ADDR']));
+	if(isset($_GET['state'])) {
+		exit(header("Location: https://twitchtokengenerator.com/request/".$_GET['state']."/".$access_token."/".$refresh_token));
 	}
 }
+	
+$scopes = $dao->getScopes();
 	
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <script>
+	var scopes_set = <? echo isset($_GET['scope']) ? "true" : "false"; ?>;
 	var token = "<? if (strlen($access_token) > 1) echo $access_token; ?>"
 </script>
 <head>
@@ -75,6 +75,39 @@ if($detect->isMobile()) {
         </div>
     </div>
 </div>
+<div class="modal fade" id="quickLinkModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="modal-title">Quick Link Generator</h5>
+                    </div>
+                    <div class="col-md-6 pull-right">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <span class="text-center" style="font-size: 120%; padding-bottom: 3px;">You are creating a quick link for the following scope permissions:</span>
+				<ul id="quick_link_permissions" style="margin-top: 10px; margin-bottom: 10px;"></ul>
+				<div class="row">
+					<div style="width: 100%;" class="btn-group mr-2 col-md-12 pull-left">
+						<button id="quicklink_auth_auth" type = "button" style="width: 50%;" onclick="toggleQuickLinkAuth(this.id);" class = "btn btn-secondary">Authenticate Immediately</button>
+						<button id="quicklink_auth_stay" type = "button" style="width: 50%;" onclick="toggleQuickLinkAuth(this.id);" class = "btn btn-primary">Stay on TwitchTokenGenerator</button>
+					</div>
+				</div>
+            </div>
+			<div class="modal-footer" style="padding-top: 12px;" >
+				<div class="row" style="padding-left: 15px; padding-right: 15px;" >
+					<button type="button" class="btn btn-success col-md-12 pull-left" onclick="fetchQuickLinkUrl()" id="quick_generate_link">Generate Quick Link</button>
+				</div>
+			</div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="requestModal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -106,10 +139,10 @@ if($detect->isMobile()) {
     </div>
   </div>
 </div>
-<div class="col-md-2"></div>
+<div class="col-md-2"></div> 
 <div class="container col-md-8">	
 	<br>
-	<div class="panel panel-primary">
+	<div id="top" class="panel panel-primary">
 		<div class="panel-heading">
 			<h3 class="panel-title text-center">Twitch Token Generator Information</h3>
 		</div>
@@ -128,11 +161,26 @@ if($detect->isMobile()) {
 				<tbody>
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
-						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $access_token; ?>" placeholder="Access Token will appear here..." disabled></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group">
+								<input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $access_token; ?>" placeholder="Access Token will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-success" type="button" onclick="copyInput(this, 'access');">Copy</button>
+								</div>
+							</div>
+							
+						</td>
 					</tr>
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
-						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $refresh_token; ?>" placeholder="Refresh Token will appear here..." disabled></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group">
+								<input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $refresh_token; ?>" placeholder="Refresh Token will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-success" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
+								</div>
+							</div>
+						</td>
 					</tr>
 				</tbody>
 			</table>
@@ -141,11 +189,25 @@ if($detect->isMobile()) {
 				<tbody>
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
-						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Access Token will appear here..." disabled></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group">
+								<input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Access Token will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-success" type="button" onclick="copyInput(this, 'access');">Copy</button>
+								</span>
+							</div>
+						</td>
 					</tr>
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
-						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Refresh Token will appear here..." disabled></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group">
+								<input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Refresh Token will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-success" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
+								</div>
+							</div>
+						</td>
 					</tr>
 				</tbody>
 			</table>
@@ -154,11 +216,11 @@ if($detect->isMobile()) {
 				<tbody>
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
-						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 120%;" placeholder="Access Token will appear here..." disabled></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="access" style="text-align: center; font-size: 120%;" placeholder="Access Token will appear here..." readonly></td>
 					</tr>
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
-						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 120%;" placeholder="Refresh Token will appear here..." disabled></td>
+						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 120%;" placeholder="Refresh Token will appear here..." readonly></td>
 					</tr>
 				</tbody>
 			</table>
@@ -181,124 +243,28 @@ if($detect->isMobile()) {
 						<th><h4><span class="label label-default center-block text-center">Scope Description</span></h4></th>
 					</tr>
 				</thead>
-				<tbody id="available_tokens">
-					<td style="width: 20%;" class="text-center"><code><input id="check_user_read" type="checkbox"></code></td>
-					<td style="width: 20%;" class="text-center"><code>user_read</code></td>
-					<td style="width: 60%;" class="text-center">Read access to non-public user information, such as email address.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_user_blocks_edit" type="checkbox"></code></td>
-					<td class="text-center"><code>user_blocks_edit</code></td>
-					<td class="text-center">Ability to ignore or unignore on behalf of a user.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_user_blocks_read" type="checkbox"></code></td>
-					<td class="text-center"><code>user_blocks_read</code></td>
-					<td class="text-center">Read access to a user's list of ignored users.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_user_follows_edit" type="checkbox"></code></td>
-					<td class="text-center"><code>user_follows_edit</code></td>
-					<td class="text-center">Access to manage a user's followed channels.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_read" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_read</code></td>
-					<td class="text-center">Read access to non-public channel information, including email address and stream key.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_editor" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_editor</code></td>
-					<td class="text-center">Write access to channel metadata (game, status, etc).</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_commercial" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_commercial</code></td>
-					<td class="text-center">Access to trigger commercials on channel.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_stream" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_stream</code></td>
-					<td class="text-center">Ability to reset a channel's stream key.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_subscriptions" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_subscriptions</code></td>
-					<td class="text-center">Read access to all subscribers to your channel.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_user_subscriptions" type="checkbox"></code></td>
-					<td class="text-center"><code>user_subscriptions</code></td>
-					<td class="text-center">Read access to subscriptions of a user.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_check_subscription" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_check_subscription</code></td>
-					<td class="text-center">Read access to check if a user is subscribed to your channel.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_chat_login" type="checkbox"></code></td>
-					<td class="text-center"><code>chat_login</code></td>
-					<td class="text-center">Ability to log into chat and send messages.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_feed_read" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_feed_read</code></td>
-					<td class="text-center">Ability to view to a channel feed.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_channel_feed_edit" type="checkbox"></code></td>
-					<td class="text-center"><code>channel_feed_edit</code></td>
-					<td class="text-center">Ability to add posts and reactions to a channel feed.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_collections_edit" type="checkbox"></code></td>
-					<td class="text-center"><code>collections_edit</code></td>
-					<td class="text-center">Manage a user's collections (of videos).</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_communities_edit" type="checkbox"></code></td>
-					<td class="text-center"><code>communities_edit</code></td>
-					<td class="text-center">Manage a user's communities.</td>
-				</tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_communities_moderate" type="checkbox"></code></td>
-					<td class="text-center"><code>communities_moderate</code></td>
-					<td class="text-center">Manage communitiy moderators.</td>
-				</tbody>
-                <tbody id="available_tokens">
-                <td class="text-center"><code><input id="check_openid" type="checkbox"></code></td>
-                <td class="text-center"><code>openid</code></td>
-                <td class="text-center">Use OpenID Connect authentication</td>
-                </tbody>
-				<tbody id="available_tokens">
-					<td class="text-center"><code><input id="check_viewing_activity_read" type="checkbox"></code></td>
-					<td class="text-center"><code>viewing_activity_read</code></td>
-					<td class="text-center">Turn on Viewer Heartbeat Service ability to record user data.</td>
-				</tbody>
+				<?
+			foreach($scopes['v5'] as $scope) {
+				echo '<tbody id="available_tokens">';
+					echo '<td style="width: 20%;" class="text-center"><code><input id="check_'.$scope['scope'].'" type="checkbox"></code></td>';
+					echo '<td style="width: 20%;" class="text-center"><code>'.$scope['scope'].'</code></td>';
+					echo '<td style="width: 60%;" class="text-center">'.$scope['desc'].'</td>';
+				echo '</tbody>';
+			}
+				
+				?>
 			</table>
             <h3><span class="label label-primary">Helix</span></h3><br>
             <table id="soundbytes" class="table">
-                <tbody id="available_tokens">
-                    <td style="width: 20%;" class="text-center"><code><input id="check_helix_user_edit" type="checkbox"></code></td>
-                    <td style="width: 20%;" class="text-center"><code>user:edit</code></td>
-                    <td style="width: 60%;" class="text-center">Manage a user object.</td>
-                </tbody>
-                <!--<tbody id="available_tokens">
-                    <td style="width: 20%;" class="text-center"><code><input id="check_helix_user_edit_description" type="checkbox"></code></td>
-                    <td style="width: 20%;" class="text-center"><code>user:edit:description</code></td>
-                    <td style="width: 60%;" class="text-center">Manage a user description.</td>
-                </tbody>-->
-                <tbody id="available_tokens">
-                    <td class="text-center"><code><input id="check_helix_user_read_email" type="checkbox"></code></td>
-                    <td class="text-center"><code>user:read:email</code></td>
-                    <td class="text-center">Read authorized user's email address.</td>
-                </tbody>
-				<tbody id="available_tokens">
-                    <td class="text-center"><code><input id="check_helix_clips_edit" type="checkbox"></code></td>
-                    <td class="text-center"><code>clips:edit</code></td>
-                    <td class="text-center">Create and edit clips as a specific user.</td>
-                </tbody>
+                <?
+			foreach($scopes['helix'] as $scope) {
+				echo '<tbody id="available_tokens">';
+					echo '<td style="width: 20%;" class="text-center"><code><input id="check_helix_'.str_replace(":", "_", $scope['scope']).'" type="checkbox"></code></td>';
+					echo '<td style="width: 20%;" class="text-center"><code>'.$scope['scope'].'</code></td>';
+					echo '<td style="width: 60%;" class="text-center">'.$scope['desc'].'</td>';
+				echo '</tbody>';
+			}
+		?>
             </table>
 			<div class="row">
 				<div class="col-md-1"></div>
@@ -306,17 +272,42 @@ if($detect->isMobile()) {
 					<button type = "button" class = "btn btn-danger" onclick="clearScopeSelections();">Reset All</button>
 					<button type = "button" class = "btn btn-success" onclick="selectAllScopes();">Select All</button>
 				</div>
-				<button type = "button" class = "col-md-2 btn btn-primary" onclick="launchRequestModal();">Request Token!</button>
-				<div class="col-md-1"></div>
-				<button type = "button" class = "col-md-4 btn btn-success" onclick="authenticate();">Generate Token!</button>
+				<div class="btn-group mr-2 col-md-4">
+					<button type = "button" class = "btn btn-secondary" onclick="launchQuickLinkModal();">Quick Link!</button>
+					<button type = "button" class = "btn btn-primary" onclick="launchRequestModal();">Request Token!</button>
+				</div>
+				<button type = "button" class = "col-md-3 btn btn-success" onclick="authenticate(true);">Generate Token!</button>
 				<div class="col-md-1"></div>
 			</div>
 		</div>
 	</div>
 
+	<div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title text-center">Refresh Access Token <span class="label label-success">NEW</span></h3>
+        </div>
+        <div class="panel-body text-center">
+			<div class="row">
+				<div class="col-md-12">
+					<span>If you have generated an access token with TwitchTokenGenerator.com in the past, you can paste the accompanying refresh token here and perform a refresh request to generate a new access token and refresh token. This will reset the 60 day validity countdown.</span>
+				</div>
+			</div>
+            <div class="row">
+				<div class="col-md-12">
+					<div class="input-group">
+						<input type="text" class="form-control" id="refresh_token_refresh" placeholder="Paste refresh token here.">
+						<span class="input-group-btn">
+							<button class="btn btn-success" type="button" onclick="performRefreshRequest()">Refresh Access Token with Refresh Token!</button>
+						</span>
+					</div>
+				</div>
+			</div>
+        </div>
+    </div>
+	
     <div class="panel panel-primary">
         <div class="panel-heading">
-            <h3 class="panel-title text-center">TwitchTokenGenerator.com Statistics <span class="label label-success">NEW</span></h3>
+            <h3 class="panel-title text-center">TwitchTokenGenerator.com Statistics </h3>
         </div>
         <div class="panel-body text-center">
             <span>All available anonymized service statistics can be found at the following link: <a target="_blank" class="twitch-link" href="https://twitchtokengenerator.com/stats">https://twitchtokengenerator.com/stats</a></span>
@@ -353,6 +344,6 @@ ga('send', 'pageview');
 
 /* --- Runtime PHP Generated JS Vars START -- */
 var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
-/* --- Runtime PHP Generated JS Vars START -- */
+/* --- Runtime PHP Generated JS Vars END -- */
 </script>
 </html>

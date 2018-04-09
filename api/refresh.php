@@ -21,8 +21,8 @@ function refresh($token) {
 	$fields = array(
 		'grant_type' => "refresh_token",
 		'refresh_token' => urlencode($token),
-		'client_id' => "",
-		'client_secret' => "",
+		'client_id' => "zkxgn9qm9y3kzrb1p0px68qa69t3ae",
+		'client_secret' => "vcoad2sha5lw6p05wcbreiiik2t09u",
 		'redirect_uri' => "https://twitchtokengenerator.com/api/success",
 		'code' => $token
 	);

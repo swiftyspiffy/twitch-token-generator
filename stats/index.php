@@ -30,10 +30,10 @@
 
         <div class="row">
             <div class="col-md-6">
-                <canvas id="scope-chart" width="800" height="800"></canvas>
+                <canvas id="scope-chart" width="800" height="1500"></canvas>
             </div>
             <div class="col-md-6">
-                <canvas id="region-chart" width="800" height="800"></canvas>
+                <canvas id="region-chart" width="800" height="1500"></canvas>
             </div>
         </div>
         </div>

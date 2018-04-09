@@ -1,5 +1,5 @@
 <?
-$details = getRequestDetails($id);
+$details = $dao->getRequestDetails($id);
 if(count($details) == 0)
 	exit(header("Location: https://twitchtokengenerator.com/"));
 if($details['enabled'] == "0")
@@ -49,11 +49,12 @@ if($details['enabled'] == "0")
 				</thead>
 				
 				<?
+				$scopes = $dao->getAllScopes();
 				foreach($details['scopes'] as $scope) {
 					echo '
 					<tbody>
 						<td class="text-center"><code>'.$scope.'</code></td>
-						<td class="text-center">'.getDescription($scope).'</td>
+						<td class="text-center">'.$scopes[$scope]['desc'].'</td>
 					</tbody>
 					';
 				}
@@ -95,7 +96,7 @@ function processRedirect() {
 	// populated via db
 	var redirect_uri = "https://twitchtokengenerator.com#" + id;
 	// redirect
-	window.location = "https://api.twitch.tv/kraken/oauth2/authorize?response_type=code&client_id=" + client_id + "&scope=" + scopes +"&redirect_uri=" + redirect_uri;
+	window.location = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=" + client_id + "&force_verify=true&state=" + id + "&scope=" + scopes +"&redirect_uri=" + redirect_uri;
 }
 
 /* --- GA START --- */
@@ -113,77 +114,3 @@ var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 /* --- Runtime PHP Generated JS Vars START -- */
 </script>
 </html>
-
-
-<?
-
-function getDescription($name) {
-	switch($name) {
-		case "user_read":
-			return "Read access to non-public user information, such as email address.";
-		case "user_blocks_edit":
-			return "Ability to ignore or unignore on behalf of a user.";
-		case "user_blocks_read":
-			return "Read access to a user's list of ignored users.";
-		case "user_follows_edit":
-			return "Access to manage a user's followed channels.";
-		case "channel_read":
-			return "Read access to non-public channel information, including email address and stream key.";
-		case "channel_editor":
-			return "Write access to channel metadata (game, status, etc).";
-		case "channel_commercial":
-			return "Access to trigger commercials on channel.";
-		case "channel_stream":
-			return "Ability to reset a channel's stream key.";
-		case "channel_subscriptions":
-			return "Read access to all subscribers to your channel.";
-		case "user_subscriptions":
-			return "Read access to subscriptions of a user.";
-		case "channel_check_subscription":
-			return "Read access to check if a user is subscribed to your channel.";
-		case "chat_login":
-			return "Ability to log into chat and send messages.";
-		case "channel_feed_read":
-			return "Ability to view to a channel feed.";
-		case "channel_feed_edit":
-			return "Ability to add posts and reactions to a channel feed.";
-		case "collections_edit":
-			return "Manage a user's collections (of videos).";
-		case "communities_edit":
-			return "Manage a user's communities.";
-		case "communities_moderate":
-			return "Manage communitiy moderators.";
-		case "viewing_activity_read":
-			return "Turn on Viewer Heartbeat Service ability to record user data.";
-		case "user:read:email":
-			return "Read authorized user's email address.";
-		case "user:edit":
-			return "Manage a user object.";
-		case "clips:edit":
-			return "Create clips under the specified user.";
-		default:
-			return "No information available. Be careful.";
-	}
-}
-
-function getRequestDetails($id) {
-	mysql_connect(DB_HOST, DB_USER, DB_PASS) or
-		die("Could not connect: " . mysql_error());
-	mysql_select_db(DB_ANONDATA);
-
-	$ab = mysql_query("SELECT * FROM `REQUESTS`") or trigger_error(mysql_error());
-	while ($row = mysql_fetch_array($ab)) {
-		if(strtolower($id) == strtolower($row['unique_string'])) {
-			$scopeStr = $row['scopes'];
-			$scopes = array();
-			if (strpos($scopeStr, '+') !== false)
-				$scopes = explode("+", $scopeStr);
-			else
-				array_push($scopes, $scopeStr);
-			return array("enabled" => $row['enabled'], "scopes_str" => $scopeStr, "scopes" => $scopes, "requester_name" => $row['requester_name'], "requester_email" => $row['requester_email']);
-		}
-		
-	}
-	return array();
-}
-?>
