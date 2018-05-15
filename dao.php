@@ -16,8 +16,8 @@ class dao {
 	}
 	
 	function updateAPIListing($unique, $token, $refresh, $username, $userid) {
-		$statement = $this->conn->prepare("UPDATE `".TABLE_API."` SET  `status` =  ?, `token` = ?, `refresh` = ?, `username` = ?, `user_id` = ? WHERE `unique_string` = ?;");
-		$statement->execute(array("1", $token, $refresh, $username, $userid, $unique));
+		$statement = $this->conn->prepare("UPDATE `".TABLE_API."` SET  `status` =  ?, `token` = ?, `refresh` = ?, `username` = ?, `user_id` = ?, `updated_at` = ? WHERE `unique_string` = ?;");
+		$statement->execute(array("1", $token, $refresh, $username, $userid, time(), $unique));
 	}
 	
 	function expireAPI($id) {
@@ -37,25 +37,30 @@ class dao {
 		}
 		return array('available' => false);
 	}
-	
-	function getAPIStatus($id) {
-		$statement = $this->conn->prepare("SELECT status, scopes, token, refresh, username, user_id FROM `".TABLE_API."` WHERE `unique_string` = ?");
+
+	function getAPIStatus($id, $expireAfterHours = 24) {
+		$statement = $this->conn->prepare("SELECT status, scopes, token, refresh, username, user_id, updated_at FROM `".TABLE_API."` WHERE `unique_string` = ?");
 		$statement->execute(array($id));
 		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
 			if($row->status != "1") {
                 return array('status' => $row->status);
             } else {
-                $scopes = $row->scopes;
-                $scopesArr = explode(' ', $scopes);
-                return array('status' => "1", 'scopes' => $scopesArr, 'token' => $row->token, 'refresh' => $row->refresh, 'username' => $row->username, 'user_id' => $row->user_id);
+				$updated_at = $row->updated_at;
+				if(($expireAfterHours * 3600) < (time() - $updated_at)) {
+					return array('status' => "3");
+				} else {
+					$scopes = $row->scopes;
+					$scopesArr = explode(' ', $scopes);
+					return array('status' => "1", 'scopes' => $scopesArr, 'token' => $row->token, 'refresh' => $row->refresh, 'username' => $row->username, 'user_id' => $row->user_id);
+				}
             }
 		}
 		return array();
 	}
 	
 	function insertAPI($unique, $title, $scopes) {
-		$statement = $this->conn->prepare("INSERT INTO `".TABLE_API."` (`unique_string`, `title`, `scopes`, `status`, `token`, `username`, `timestamp`) VALUES (?, ?, ?, ?, ?, ?, ?);");
-		$statement->execute(array($unique, $title, $scopes, "0", "", "", time()));
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_API."` (`unique_string`, `title`, `scopes`, `status`, `token`, `username`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+		$statement->execute(array($unique, $title, $scopes, "0", "", "", time(), "0"));
 	}
 	
 	function insertQuickLink($key, $scopes, $auth) {
@@ -186,13 +191,13 @@ class dao {
 	
 	/*
 	
-	Stats DB calls
+	Private DB calls
 	
 	*/
 	
-	function logUsage($ip, $scopes, $country) {
-		$statement = $this->conn->prepare("INSERT INTO `".TABLE_DATA."` (`ip`, `utc`, `scopes`, `country`) VALUES (?,?,?,?);");
-		$statement->execute(array($ip, time(), str_replace(" ", ",", $scopes), $country));
+	function logUsage($ip, $scopes, $country, $username) {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_DATA."` (`ip`, `utc`, `scopes`, `country`, `username`) VALUES (?,?,?,?,?);");
+		$statement->execute(array($ip, time(), str_replace(" ", ",", $scopes), $country, $username));
 	}
 	
 	function getCountry($ip) {

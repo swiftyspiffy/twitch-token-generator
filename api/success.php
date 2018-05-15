@@ -26,7 +26,7 @@ try {
 
     $dao->updateAPIListing($unique, $access_token, $refresh_token, $username, $userid);
 
-    $dao->logUsage($_SERVER['REMOTE_ADDR'], $status['scopes'], $dao->getCountry($_SERVER['REMOTE_ADDR']));
+    $dao->logUsage($_SERVER['REMOTE_ADDR'], $status['scopes'], $dao->getCountry($_SERVER['REMOTE_ADDR']), $dao->getUsername($access_token));
 }catch(Exception $ex) {
 
 }

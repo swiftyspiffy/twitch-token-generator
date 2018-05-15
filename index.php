@@ -10,11 +10,10 @@ if(isset($_GET['code'])) {
 	$data = $twitchtv->get_access_token($_GET['code']);
 	$access_token = $data['access'];
 	$refresh_token = $data['refresh'];
-	// Stats logging
 	if(isset($_GET['scope']))
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $dao->getCountry($_SERVER['REMOTE_ADDR']));
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $dao->getCountry($_SERVER['REMOTE_ADDR']), $dao->getUsername($access_token));
 	else
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $dao->getCountry($_SERVER['REMOTE_ADDR']));
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $dao->getCountry($_SERVER['REMOTE_ADDR']), $dao->getUsername($access_token));
 	if(isset($_GET['state'])) {
 		exit(header("Location: https://twitchtokengenerator.com/request/".$_GET['state']."/".$access_token."/".$refresh_token));
 	}
@@ -225,7 +224,7 @@ $scopes = $dao->getScopes();
 				</tbody>
 			</table>
 			<? endif; ?>
-			<span><i>As a security precaution, this tool does NOT store your tokens. You will need to generate new tokens if you've lost your current ones.</i></span>
+			<span class="text-center" style="width: 100%;"><i>As a security precaution, this tool does NOT store your tokens. You will need to generate new tokens if you've lost your current ones.</i></span>
 		</div>
 	</div>
 
