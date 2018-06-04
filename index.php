@@ -5,18 +5,30 @@ include("twitchtv.php");
 $dao = new dao();
 
 $access_token = "";
+$id = "";
+$username = "";
 if(isset($_GET['code'])) {
 	$twitchtv = new TwitchTV;
 	$data = $twitchtv->get_access_token($_GET['code']);
 	$access_token = $data['access'];
 	$refresh_token = $data['refresh'];
+	$username = $dao->getUsername($access_token);
+	if($username == null)
+	    $username = "[Not set]";
 	if(isset($_GET['scope']))
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $dao->getCountry($_SERVER['REMOTE_ADDR']), $dao->getUsername($access_token));
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $dao->getCountry($_SERVER['REMOTE_ADDR']), $username, $_SERVER['HTTP_USER_AGENT']);
 	else
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $dao->getCountry($_SERVER['REMOTE_ADDR']), $dao->getUsername($access_token));
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $dao->getCountry($_SERVER['REMOTE_ADDR']), $username, $_SERVER['HTTP_USER_AGENT']);
 	if(isset($_GET['state'])) {
 		exit(header("Location: https://twitchtokengenerator.com/request/".$_GET['state']."/".$access_token."/".$refresh_token));
 	}
+	if($username != "[Not set]") {
+		$id = generateRandomString();
+		$dao->insertRecaptchaListing($id, $access_token, $refresh_token, $username);
+		$access_token = "Please complete the Captcha";
+		$refresh_token = "Please complete the Captcha";
+	}
+	
 }
 	
 $scopes = $dao->getScopes();
@@ -27,7 +39,14 @@ $scopes = $dao->getScopes();
 <html lang="en">
 <script>
 	var scopes_set = <? echo isset($_GET['scope']) ? "true" : "false"; ?>;
-	var token = "<? if (strlen($access_token) > 1) echo $access_token; ?>"
+	var token = "<? if (strlen($access_token) > 1) echo $access_token; ?>";
+	<?
+	if(isset($_GET['code'])) {
+		echo 'var captchaId = "'.$id.'";';
+	} else {
+		echo 'var captchaId = "";';
+	}
+	?>
 </script>
 <head>
 	<title>Twitch Token Generator by swiftyspiffy</title>
@@ -37,10 +56,11 @@ $scopes = $dao->getScopes();
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 		
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js"></script>
-	<script src="bootstrap-checkbox.min.js"></script>
-	<script src="script.js"></script>
-	<link rel="stylesheet" href="style.css">
-	<link rel="icon" type="image/ico" sizes="48x48" href="/favicon-48x48.ico">
+	<script src="https://twitchtokengenerator.com/bootstrap-checkbox.min.js"></script>
+	<script src="https://twitchtokengenerator.com/script.js"></script>
+	<link rel="stylesheet" href="https://twitchtokengenerator.com/style.css">
+	<link rel="icon" type="image/ico" sizes="48x48" href="https://twitchtokengenerator.com/favicon-48x48.ico">
+	<script src='https://www.google.com/recaptcha/api.js'></script>
 </head>
 <div class="modal fade" id="welcomeModal">
     <div class="modal-dialog" role="document">
@@ -165,7 +185,7 @@ $scopes = $dao->getScopes();
 								<input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $access_token; ?>" placeholder="Access Token will appear here..." readonly>
 								<span class="input-group-btn">
 									<button class="btn btn-success" type="button" onclick="copyInput(this, 'access');">Copy</button>
-								</div>
+								</span>
 							</div>
 							
 						</td>
@@ -177,7 +197,7 @@ $scopes = $dao->getScopes();
 								<input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $refresh_token; ?>" placeholder="Refresh Token will appear here..." readonly>
 								<span class="input-group-btn">
 									<button class="btn btn-success" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
-								</div>
+								</span>
 							</div>
 						</td>
 					</tr>
@@ -204,7 +224,7 @@ $scopes = $dao->getScopes();
 								<input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Refresh Token will appear here..." readonly>
 								<span class="input-group-btn">
 									<button class="btn btn-success" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
-								</div>
+								</span>
 							</div>
 						</td>
 					</tr>
@@ -330,6 +350,28 @@ $scopes = $dao->getScopes();
     </div>
 	<br><br>
 </div>
+<div class="modal fade" id="cyborgModal" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="modal-title">You're not a robot right?</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body text-center">
+                <span class="text-center" style="font-size: 120%;">Prove your humanity at once!</span><br><br>
+				<form id="robot_form" action="internal.php" method="post">
+					<input type="hidden" id="robot_identifier" name="robot_identifier" value="<? echo $id; ?>"></input>
+					<div class="g-recaptcha" data-callback="recaptchaSuccess" style="padding-left: 23%" data-sitekey="6LeaCF0UAAAAAMG7-HRJ1Oq_aneLPdQQNN0r9_no"></div>
+				</form>
+				<img class="text-center" src="https://twitchtokengenerator.com/img/kappa.gif"><br>
+				<span id="waiting_text" class="text-center" style="font-size: 70%">waiting...</span>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
 /* --- GA START --- */
 (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -346,3 +388,17 @@ var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 /* --- Runtime PHP Generated JS Vars END -- */
 </script>
 </html>
+
+<?
+
+function generateRandomString($length = 10) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, $charactersLength - 1)];
+    }
+    return $randomString;
+}
+
+?>

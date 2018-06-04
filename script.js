@@ -3,6 +3,7 @@ var client_id = "gp762nuuoqcoxypju8c569th9wz7q5";
 var redirect_uri = "https://twitchtokengenerator.com";
 
 var scopes = getScopes();
+var waitingRotator;
 
 $( document ).ready(function() {
     console.log( "loaded! enabling custom checkboxes!" );
@@ -17,15 +18,63 @@ $( document ).ready(function() {
 		if(vars['auth'] != null && vars['auth'] != "") {
 			if(vars['auth'] == "auth_auth") {
 				authenticate();
-				console.log("fired");
 			}
 		}
 	}
 
+	waitingRotator = setInterval(rotateWaitingText, 3000);
+	
 	if(!authSuccessful && !scopes_set) {
 	    launchWelcomeModal();
     }
+	
+	if(captchaId != "") {
+		showRecaptchaModal(captchaId);
+	}
+	
+	$('#robot_form').on('submit', function(e) {
+		e.preventDefault();
+		$.ajax({
+			url: $(this).attr("action") || window.location.pathname,
+			type: "POST",
+			data: $(this).serialize(),
+			success: function(data) {
+				if(data.success) {
+					setAccessText(data['result']['access']);
+					setRefreshText(data['result']['refresh']);
+					setSuccessStyle();
+				} else {
+					setAccessText("ERROR: Unable to ensure you're not a robot!");
+					setRefreshText("ERROR: Unable to ensure you're not a robot!");
+					setErrorStyle();
+					alert("Error checking robot status! Details below:\n\n" + data.message);
+				}
+				$('#cyborgModal').modal("hide");
+			},
+			error: function(data) {
+				setAccessText("ERROR: Unable to ensure you're not a robot!");
+				setRefreshText("ERROR: Unable to ensure you're not a robot!");
+				setErrorStyle();
+				alert("Internal error. Please contact swiftyspiffy.");
+			}
+		});
+	});
 });
+
+function setAccessText(val) {
+	$('#access').val(val);
+}
+function setRefreshText(val) {
+	$('#refresh').val(val);
+}
+function setSuccessStyle() {
+	$('#access').attr("style", "text-align: center; font-size: 200%; color: #009900;");
+	$('#refresh').attr("style", "text-align: center; font-size: 200%; color: #009900;");
+}
+function setErrorStyle() {
+	$('#access').attr("style", "text-align: center; font-size: 200%; color: #a31824;");
+	$('#refresh').attr("style", "text-align: center; font-size: 200%; color: #a31824;");
+}
 
 var quickLinkToggleType = "auth_stay";
 function toggleQuickLinkAuth(id) {
@@ -38,6 +87,13 @@ function toggleQuickLinkAuth(id) {
 		$('#quicklink_auth_auth').addClass("btn-primary").removeClass("btn-secondary");
 		quickLinkToggleType = "auth_auth";
 	}
+}
+
+function rotateWaitingText() {
+	var texts = ["waiting...", "hurry it up human!", "alright criminal scum...", "there are no choices. nothing but a captcha", "increaseth waiting, increaseth guiltyness", "this is it baby.. click that button", "aim towards the captcha", "finish the captcha!", "thank you programmer, but your tokens await captcha completion", "it's-a me, a-captcha!", "its dangerous to go alone, take this captcha", "the captcha is a lie", "twitchtokengenerator is the name, token generation is the game", "stay capatcha'd", "its time to kickass and generate this token, but i still have this captcha", "nothing is true, captcha is permitted", "we all make choices but in the end our choices make tokens", "tokens here!", "all your tokens are belong to us", "captchas.. captchas never change", "you know our motto, we deliver tokens", "remember, no captcha", "the captchas mason, what do they mean!", "homie lets roll on some tokens", "wake me up when you finish the captcha", "dont you recognize me? its me, captcha", "i would have been your daddy, but the captcha beat me over the fence", "in this world, its generate or be generated", "rise and shine, mr programmer", "generatacular!", "generation, its in the game", "catcha was super effective!", "anyways, moral of the story is finish the captcha!", "sir, finishing this captcha!", "this is your generation!", "CAPTCHA!", "go soak your head, programmer!", "fatality! flawless generation!", "i need a generation"];
+	
+	var t = texts[Math.floor(Math.random()*texts.length)];
+	$('#waiting_text').html(t);
 }
 
 function getScopes() {
@@ -239,6 +295,16 @@ function performRefreshRequest() {
 	}).error(function(data) {
 		console.log("ERROR: " + data);
 	});
+}
+
+var identifier
+function recaptchaSuccess() {
+	$("#robot_form").submit();
+}
+
+function showRecaptchaModal(id) {
+	$('#cyborgModal').modal("show");
+	$('#robot_identifier').val(id);
 }
 
 function copyInput(btn, el) {
