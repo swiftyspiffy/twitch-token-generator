@@ -8,27 +8,42 @@ $access_token = "";
 $id = "";
 $username = "";
 if(isset($_GET['code'])) {
-	$twitchtv = new TwitchTV;
-	$data = $twitchtv->get_access_token($_GET['code']);
+	$data = getAccessToken($_GET['code'], "frontend");
 	$access_token = $data['access'];
 	$refresh_token = $data['refresh'];
+	if(strlen($access_token) < 5 || strlen($refresh_token) < 5) { $dao->insertError("index.php", "", "no access token or refresh token"); }
 	$username = $dao->getUsername($access_token);
 	if($username == null)
 	    $username = "[Not set]";
-	if(isset($_GET['scope']))
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $dao->getCountry($_SERVER['REMOTE_ADDR']), $username, $_SERVER['HTTP_USER_AGENT']);
-	else
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $dao->getCountry($_SERVER['REMOTE_ADDR']), $username, $_SERVER['HTTP_USER_AGENT']);
+	$country = $dao->getCountry($_SERVER['REMOTE_ADDR']);    
+	
+	$spamRules = $dao->getSpamRules();
+	$spamResult = isSpam($spamRules, $_SERVER['REMOTE_ADDR'], $_GET['scope'], $country, $username, $_SERVER['HTTP_USER_AGENT']);
+	
+	if(isset($_GET['scope'])) {
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $country, $username, $_SERVER['HTTP_USER_AGENT'], $spamResult);
+		$udata = $dao->getUserdata($username, $access_token);
+		$partner = $udata['partner'] ? "1" : "0";
+		$dao->logMetadata($username, $udata['userid'], $udata['followers'], $udata['views'], $partner);
+	} else {
+		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $country, $username, $_SERVER['HTTP_USER_AGENT'], $spamResult);
+	}
+	
 	if(isset($_GET['state'])) {
 		exit(header("Location: https://twitchtokengenerator.com/request/".$_GET['state']."/".$access_token."/".$refresh_token));
 	}
+	
+	if(strlen($spamResult) > 0) {
+	    $access_token = genFakeToken(30);
+		$refresh_token = genFakeToken(50);
+	}
+	
 	if($username != "[Not set]") {
 		$id = generateRandomString();
 		$dao->insertRecaptchaListing($id, $access_token, $refresh_token, $username);
 		$access_token = "Please complete the Captcha";
 		$refresh_token = "Please complete the Captcha";
 	}
-	
 }
 	
 $scopes = $dao->getScopes();
@@ -56,10 +71,10 @@ $scopes = $dao->getScopes();
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 		
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js"></script>
-	<script src="https://twitchtokengenerator.com/bootstrap-checkbox.min.js"></script>
-	<script src="https://twitchtokengenerator.com/script.js"></script>
-	<link rel="stylesheet" href="https://twitchtokengenerator.com/style.css">
-	<link rel="icon" type="image/ico" sizes="48x48" href="https://twitchtokengenerator.com/favicon-48x48.ico">
+	<script src="https://twitchtokengenerator.com/assets/bootstrap-checkbox.min.js"></script>
+	<script src="https://twitchtokengenerator.com/assets/script.js"></script>
+	<link rel="stylesheet" href="https://twitchtokengenerator.com/assets/style.css">
+	<link rel="icon" type="image/ico" sizes="48x48" href="https://twitchtokengenerator.com/assets/favicon-48x48.ico">
 	<script src='https://www.google.com/recaptcha/api.js'></script>
 </head>
 <div class="modal fade" id="welcomeModal">
@@ -303,7 +318,7 @@ $scopes = $dao->getScopes();
 
 	<div class="panel panel-primary">
         <div class="panel-heading">
-            <h3 class="panel-title text-center">Refresh Access Token <span class="label label-success">NEW</span></h3>
+            <h3 class="panel-title text-center">Refresh Access Token</h3>
         </div>
         <div class="panel-body text-center">
 			<div class="row">
@@ -320,8 +335,47 @@ $scopes = $dao->getScopes();
 						</span>
 					</div>
 				</div>
+			</div><br>
+			<div class="row">
+				<div class="col-md-12">
+					<div class="alert alert-info text-left" role="alert"><strong>API: </strong> https://twitchtokengenerator.com/api/refresh/&lt;REFRESH_TOKEN&gt;</div>
+				</div>
 			</div>
         </div>
+    </div>
+	
+	<div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title text-center">Revoke Your Access Token <span class="label label-success">NEW</span></h3>
+        </div>
+        <div class="panel-body text-center">
+			<span>If you'd like to invalid your access token because it leaked or you want to rotate it without blocking TwitchTokenGenerator as a whole, you can revoke individual tokens here:</span>
+			<div class="row">
+				<div class="col-md-12">
+					<div class="input-group">
+						<input type="text" class="form-control" id="revoke_access_token" placeholder="Paste access token to be revoked here.">
+						<span class="input-group-btn">
+							<button class="btn btn-success" type="button" onclick="revokeToken()">Revoke Access Token!</button>
+						</span>
+					</div>
+				</div>
+			</div><br>
+			<div class="row">
+				<div class="col-md-12">
+					<div class="alert alert-info text-left" role="alert"><strong>API: </strong> https://twitchtokengenerator.com/api/revoke/&lt;ACCESS_TOKEN&gt;</div>
+				</div>
+			</div>
+        </div>
+    </div>
+	
+	<div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title text-center">Forgot Your Token Details?</h3>
+        </div>
+        <div class="panel-body text-center">
+            <span>If you've forgotten the username, userid, scopes or dates assigned to an oauth token (doesn't need to be from TwitchTokenGenerator.com), you can use this tool to get them: <br>
+			<a target="_blank" style="font-size: 120%; font-weight: bold;" class="twitch-link" href="https://twitchtokengenerator.com/forgot">twitchtokengenerator.com/forgot</a></span>
+		</div>
     </div>
 	
     <div class="panel panel-primary">
@@ -329,7 +383,8 @@ $scopes = $dao->getScopes();
             <h3 class="panel-title text-center">TwitchTokenGenerator.com Statistics </h3>
         </div>
         <div class="panel-body text-center">
-            <span>All available anonymized service statistics can be found at the following link: <a target="_blank" class="twitch-link" href="https://twitchtokengenerator.com/stats">https://twitchtokengenerator.com/stats</a></span>
+            <span>All available anonymized service statistics can be found at the following link:<br>
+			<a target="_blank" style="font-size: 120%; font-weight: bold;" class="twitch-link" href="https://twitchtokengenerator.com/stats">twitchtokengenerator.com/stats</a></span>
         </div>
     </div>
 
@@ -350,7 +405,7 @@ $scopes = $dao->getScopes();
     </div>
 	<br><br>
 </div>
-<div class="modal fade" id="cyborgModal" data-keyboard="false" data-backdrop="static">
+<div class="modal fade-scale" id="cyborgModal" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -399,6 +454,28 @@ function generateRandomString($length = 10) {
         $randomString .= $characters[rand(0, $charactersLength - 1)];
     }
     return $randomString;
+}
+
+function isSpam($rules, $ip, $scope, $country, $username, $useragent) {
+    foreach($rules as $rule) {
+        if(strlen($rule['ip']) > 0 && $rule['ip'] != $ip)
+            return false;
+        if(strlen($rule['scopes']) > 0 && $rule['scopes'] != $scope)
+            return false;
+        if(strlen($rule['country']) > 0 && $rule['country'] != $country)
+            return false;
+        if(strlen($rule['username']) > 0 && $rule['username'] != $username)
+            return false;
+        if(strlen($rule['useragent']) > 0 && $rule['useragent'] != $useragent)
+            return false;
+            
+        return $rule['id'];
+    }
+    return "";
+}
+
+function genFakeToken($length = 10) {
+    return substr(str_shuffle(str_repeat($x='0123456789abcdefghijklmnopqrstuvwxyz', ceil($length/strlen($x)) )),1,$length);
 }
 
 ?>

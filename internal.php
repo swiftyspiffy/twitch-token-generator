@@ -22,7 +22,7 @@ $dao->deleteRecaptchaListing($id);
 if(!$result['found'])
 	exit(json_encode(array('success' => false, 'message' => "Generation data not found on server!")));
 
-exit(json_encode(array('success' => true, 'result' => array('access' => $result['access'], 'refresh' => $result['refresh']))));
+exit(json_encode(array('success' => true, 'robot_identifier' => $_POST['robot_identifier'], 'result' => array('access' => $result['access'], 'refresh' => $result['refresh']))));
 
 function isValid($captcha, $ip) {
 	try {
@@ -45,6 +45,7 @@ function isValid($captcha, $ip) {
         return json_decode($result)->success;
     }
     catch (Exception $e) {
+		$dao->insertError("internal.php", "isValid", "failed to verify captcha with google");
         return null;
     }
 }

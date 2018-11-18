@@ -4,8 +4,11 @@ header('Content-Type: application/json');
 if(count($args) == 1) {
 	$resp = refresh($args[0]);
 	if($resp['success']) {
+		$username = $dao->getUsername($resp['access']);
+		$dao->insertRefreshRequest(1, $username, $_SERVER['REMOTE_ADDR']);
 		exit(json_encode(array('success' => true, 'token' => $resp['access'], 'refresh' => $resp['refresh'])));
 	} else {
+		$dao->insertRefreshRequest(0, "", $_SERVER['REMOTE_ADDR']);
 		exit(json_encode(array('success' => false, 'error' => 22, 'message' => 'Invalid refresh token received.')));
 	}
 } else {
@@ -21,9 +24,9 @@ function refresh($token) {
 	$fields = array(
 		'grant_type' => "refresh_token",
 		'refresh_token' => urlencode($token),
-		'client_id' => "zkxgn9qm9y3kzrb1p0px68qa69t3ae",
-		'client_secret' => "vcoad2sha5lw6p05wcbreiiik2t09u",
-		'redirect_uri' => "https://twitchtokengenerator.com/api/success",
+		'client_id' => API_CLIENT_ID,
+		'client_secret' => API_CLIENT_SECRET,
+		'redirect_uri' => API_REDIRECT,
 		'code' => $token
 	);
 	curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);

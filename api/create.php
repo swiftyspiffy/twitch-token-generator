@@ -8,7 +8,7 @@ if(strlen($title) > 500)
     exit(json_encode(array("success" => false, "error" => 14, "message" => "invalid title")));
 
 $unique = randStrGen(20);
-$dao->insertAPI($unique, $title, $scopes);
+$dao->insertAPI($unique, $title, $scopes, $_SERVER['REMOTE_ADDR']);
 
 exit(json_encode(array("success" => true, 'id' => $unique, "message" => "https://twitchtokengenerator.com/api/".$unique)));
 

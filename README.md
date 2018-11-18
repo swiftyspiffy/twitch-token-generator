@@ -30,8 +30,6 @@ An API exists on TwitchTokenGenerator allowing the creation of tokens and implem
  - Please record your access token as well as the refresh token for usage.
 4. Occasionally you will find that your Twitch access token has expired. This is new as of Twitch's oAuth2 implementation. To refresh, use the "refresh" token that you received in step 3 and hit the /api/refresh/ endpoint to get a new token.
  - Example refresh: `https://twitchtokengenerator.com/api/refresh/{refresh_token}`
-### Credits
- - Xxplosions' twitchtv-oauth: [Xxplosions/twitchtv-oauth](https://github.com/Xxplosions/twitchtv-oauth)
- 
+
 ### License
-MIT License. &copy; 2017 Cole
+MIT License. &copy; 2018 Cole

@@ -1,0 +1,25 @@
+.panel-primary>.panel-heading {
+	background-color: #6441A4;
+	border-color: #6441A4;
+}
+
+.panel-primary {
+	border-color: #6441A4;
+}
+
+.twitch-link {
+	color: #6441A4;
+}
+
+.fade-scale {
+  transform: scale(0);
+  opacity: 0;
+  -webkit-transition: all .25s linear;
+  -o-transition: all .25s linear;
+  transition: all .25s linear;
+}
+
+.fade-scale.in {
+  opacity: 1;
+  transform: scale(1);
+}
