@@ -5,13 +5,28 @@ class dao {
 	private $conn;
 	
 	function __construct() {
-		$this->conn = new PDO("mysql:host=".DB_HOST.";dbname=".DB_ANONDATA, DB_USER, DB_PASS);
+		$this->conn = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME, DB_USER, DB_PASS);
 		$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	}
+
+	function insertButtonMetrics($btnId, $ip) {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_BUTTON_METRICS."` (`btn_id`, `ip`, `timestamp`) VALUES (?, ?, ?);");
+		$statement->execute(array($btnId, $ip, time()));
+	}
+	
+	function insertMissingSecurityCode($ip, $useragent) {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_MISSING_SECURITY_CODE."` (`ip`, `user_agent`, `utc`) VALUES (?, ?, ?);");
+		$statement->execute(array($ip, $useragent, time()));
 	}
 	
 	function insertRefreshRequest($success, $username, $ip) {
 		$statement = $this->conn->prepare("INSERT INTO `".TABLE_REFRESH_REQUESTS."` (`success`, `username`, `ip`) VALUES (?, ?, ?);");
 		$statement->execute(array($success, $username, $ip));
+	}
+	
+	function insertRevokeRequest($success, $ip) {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_REVOKE_REQUESTS."` (`success`, `ip`, `utc`) VALUES (?, ?, ?);");
+		$statement->execute(array($success, $ip, time()));
 	}
 	
 	function getSpamRules() {
@@ -32,7 +47,7 @@ class dao {
 	}
 	
 	function deleteRecaptchaListing($id) {
-		$statement = $this->conn->prepare("DELETE FROM `".TABLE_RECAPTCHA."` WHERE `".TABLE_RECAPTCHA."`.`identifier` = ?");
+		$statement = $this->conn->prepare("DELETE FROM `".TABLE_RECAPTCHA."` WHERE `identifier` = ?");
 		$statement->execute(array($id));
 	}
 	
@@ -67,7 +82,7 @@ class dao {
 			if($row->status != "0") {
                 return array('available' => false);
             } else {
-                return array('available' => true, 'title' => $row->title, 'scopes' => $row->scopes);
+                return array('available' => true, 'title' => $row->title, 'scopes' => $row->scopes, 'redirect_url' => $row->redirect_url);
             }
 		}
 		return array('available' => false);
@@ -93,9 +108,9 @@ class dao {
 		return array();
 	}
 	
-	function insertAPI($unique, $title, $scopes, $ip = "not_set") {
-		$statement = $this->conn->prepare("INSERT INTO `".TABLE_API."` (`unique_string`, `title`, `scopes`, `status`, `token`, `username`, `created_at`, `updated_at`, `creation_ip`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
-		$statement->execute(array($unique, $title, $scopes, "0", "", "", time(), "0", $ip));
+	function insertAPI($unique, $title, $scopes, $ip = "not_set", $redirect = "", $recaptcha = "0") {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_API."` (`unique_string`, `title`, `scopes`, `status`, `token`, `username`, `created_at`, `updated_at`, `creation_ip`, `redirect_url`, `recaptcha_status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+		$statement->execute(array($unique, $title, $scopes, "0", "", "", time(), "0", $ip, $redirect, $recaptcha));
 	}
 	
 	function insertQuickLink($key, $scopes, $auth) {
@@ -103,14 +118,19 @@ class dao {
 		$statement->execute(array($key, $scopes, $auth, time(), "0"));
 	}
 	
+	function insertReferrer($referrer) {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_REFERRER."` (`ip`, `referrer`, `utc`) VALUES (?, ?, ?);");
+		$statement->execute(array($_SERVER['REMOTE_ADDR'], $referrer, time()));
+	}
+	
 	function getAPIData($id) {
-		$statement = $this->conn->prepare("SELECT unique_string, scopes, status FROM `".TABLE_API."` WHERE `unique_string` = ? ;");
+		$statement = $this->conn->prepare("SELECT unique_string, scopes, status, title, recaptcha_status FROM `".TABLE_API."` WHERE `unique_string` = ? ;");
 		$statement->execute(array($id));
 		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
 			if($row->status != "0") {
 				return array('error' => 1);
 			} else {
-				return array('error' => 0, 'unique' => $row->unique_string, 'scopes' => $row->scopes);
+				return array('error' => 0, 'unique' => $row->unique_string, 'scopes' => $row->scopes, 'title' => $row->title);
 			}
 		}
 		return array('error' => 2);
@@ -138,7 +158,7 @@ class dao {
 	function getUsername($token) {
 		if($token == null || strlen($token) < 3)
 			return null;
-		$usernameResult = file_get_contents("https://api.twitch.tv/kraken?oauth_token=" . $token);
+		$usernameResult = file_get_contents("https://api.twitch.tv/kraken?oauth_token=" . $token."&api_version=5");
 		$json_decoded_usernameResult = json_decode($usernameResult, true);
 		return $json_decoded_usernameResult['token']['user_name'];
 	}
@@ -152,9 +172,46 @@ class dao {
 	function getUserData($name, $token) {
 		if($name == "[Not set]")
 			return array('userid' => "-1", 'followers' => "-1", 'views' => "-1", 'partner' => false);
-		$data = file_get_contents("https://api.twitch.tv/kraken/channels/".$name."?oauth_token=".$token);
+		
+		$opts = array(
+			'http'=>array(
+				'method'=>"GET",
+				'header'=>"Client-ID: ".FRONTEND_CLIENT_ID."\r\n" .
+					"Authorization: OAuth ".$token."\r\n" .
+					"Accept: application/vnd.twitchtv.v5+json\r\n"
+			)
+		);
+		$context = stream_context_create($opts);
+
+		$data = file_get_contents("https://api.twitch.tv/kraken", false, $context);
 		$res = json_decode($data, true);
-		return array('userid' => $res['_id'], 'followers' => $res['followers'], 'views' => $res['views'], 'partner' => $res['partner']);
+		$userid = $res['token']['user_id'];
+		
+		$data = file_get_contents("https://api.twitch.tv/kraken/channels/".$userid, false, $context);
+		$this->dumpRequest($name."(".$userid.")", $data);
+		$res = json_decode($data, true); 
+		return array('userid' => $userid, 'followers' => $res['followers'], 'views' => $res['views'], 'partner' => $res['partner'], 'logo' => $res['logo']);
+	}
+	
+	function getUserViewCount($name) {
+		if($name == "[Not set]")
+			return array('userid' => "-1", 'followers' => "-1", 'views' => "-1", 'partner' => false);
+		
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, "https://api.twitch.tv/helix/users?login=".$name);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+		
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+			'Accept: application/vnd.twitchtv.v5+json',
+			'Client-ID: '.FRONTEND_CLIENT_ID
+		));
+		
+		$result = curl_exec($ch);
+		curl_close();
+		
+		$json = json_decode($result, true);
+		return $json['data'][0]['view_count'];
 	}
 	
 	function disableRequest($id) {
@@ -180,12 +237,12 @@ class dao {
 	function getScopes() {
 		$res = array();
 		
-		$statement = $this->conn->prepare("SELECT api_set, scope, description FROM `".TABLE_SCOPES."`;");
+		$statement = $this->conn->prepare("SELECT id, api_set, scope, description FROM `".TABLE_SCOPES."`;");
 		$statement->execute();
 		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
 			if(!array_key_exists($row->api_set, $res))
 				$res[$row->api_set] = array();
-			array_push($res[$row->api_set], array('scope' => $row->scope, 'desc' => $row->description));
+			array_push($res[$row->api_set], array('id' => $row->id, 'scope' => $row->scope, 'desc' => $row->description));
 		}
 		
 		return $res;
@@ -194,10 +251,10 @@ class dao {
 	function getAllScopes() {
 		$res = array();
 		
-		$statement = $this->conn->prepare("SELECT scope, description FROM `".TABLE_SCOPES."`;");
+		$statement = $this->conn->prepare("SELECT id, scope, description FROM `".TABLE_SCOPES."`;");
 		$statement->execute();
 		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
-			$res[$row->scope] = array('scope' => $row->scope, 'desc' => $row->description);
+			$res[$row->scope] = array('id' => $row->id, 'scope' => $row->scope, 'desc' => $row->description);
 		}
 		
 		return $res;
@@ -206,21 +263,13 @@ class dao {
 	function getRawScopes() {
 		$res = array();
 		
-		$statement = $this->conn->prepare("SELECT scope, description FROM `".TABLE_SCOPES."`;");
+		$statement = $this->conn->prepare("SELECT id, scope, description FROM `".TABLE_SCOPES."`;");
 		$statement->execute();
 		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
-			array_push($res, $row->scope);
+			array_push($res, array('id' => $row->id, 'scope' => $row->scope));
 		}
 		
 		return $res;
-	}
-	
-	function getRecentAuth() {
-		$statement = $this->conn->prepare("SELECT utc, scopes, country FROM `".TABLE_DATA."` ORDER BY `id` DESC LIMIT 1");
-		$statement->execute();
-		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
-			return array('utc' => $row->utc, 'scopes' => $row->scopes, 'country' => $row->country);
-		}
 	}
 	
 	function getStats() {
@@ -232,11 +281,6 @@ class dao {
 			array_push($res, array('scopes' => $row->scopes, 'country' => $row->country));
 		}
 		return $res;
-	}
-	
-	function logUsage($ip = "", $scopes = "", $country = "", $username = "", $userAgent = "", $flag = "not_set") {
-		$statement = $this->conn->prepare("INSERT INTO `".TABLE_DATA."` (`ip`, `scopes`, `country`, `username`, `useragent`, `flag`) VALUES (?,?,?,?,?,?);");
-		$statement->execute(array($ip, str_replace(" ", ",", $scopes), $country, $username, $userAgent, $flag));
 	}
 	
 	function logMetadata($username = "", $userid = -1, $followers = -1, $views = -1, $partner = -1) {
@@ -324,6 +368,39 @@ class dao {
 		}
 		
 		return $results;
+	}
+	
+	function insertRecaptchaCompletionListing($unique_string = "", $userid = "", $username = "") {
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_RECAPTCHA_COMPLETION."` (`unique_string`, `userid`, `username`, `created_at`, `completed`) VALUES (?, ?, ?, ?, ?);");
+		$statement->execute(array($unique_string, $userid, $username, date(DATE_ATOM), '0'));
+	}
+	
+	function finishRecaptchaCompletionListing($unique_string) {
+		$statement = $this->conn->prepare("UPDATE `".TABLE_RECAPTCHA_COMPLETION."` SET `completed` = ? WHERE `".TABLE_RECAPTCHA_COMPLETION."`.`unique_string` = ?");
+		$statement->execute(array("1", $unique_string));
+	}
+	
+	function getApiRecaptchaStatus($id) {
+		$statement = $this->conn->prepare("SELECT title, token, scopes, recaptcha_status FROM `".TABLE_API."` WHERE `unique_string` = ? ;");
+		$statement->execute(array($id));
+		while($row=$statement->fetch(PDO::FETCH_OBJ)) {
+			return array('error' => 0, 'title' => $row->title, 'token' => $row->token, 'scopes' => $row->scopes, 'recaptcha_status' => $row->recaptcha_status);
+		}
+		return array('error' => 1);
+	}
+	
+	function updateApiRecaptchaStatus($identifier, $status) {
+		$statement = $this->conn->prepare("UPDATE `".TABLE_API."` SET `recaptcha_status` = ? WHERE `".TABLE_API."`.`unique_string` = ?");
+		$statement->execute(array($status, $identifier));
+	}
+	
+	function dumpRequest($username = "", $data = "") {
+		if($username == null || $username == "")
+			$username = "not_set";
+		if($data == null || $data == "")
+			$data = "not_set";
+		$statement = $this->conn->prepare("INSERT INTO `".TABLE_REQUEST_DEBUG."` (`username`, `data`, `utc`) VALUES (?, ?, ?);");
+		$statement->execute(array($username, $data, time()));
 	}
 }
 

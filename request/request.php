@@ -92,7 +92,7 @@ function processRedirect() {
 	var id = "<? echo $id; ?>";
 	var scopes = "<? echo $details["scopes_str"]; ?>";
 	// twitch variables
-	var client_id = "gp762nuuoqcoxypju8c569th9wz7q5";
+	var client_id = "<? echo FRONTEND_CLIENT_ID; ?>";
 	// populated via db
 	var redirect_uri = "https://twitchtokengenerator.com#" + id;
 	// redirect

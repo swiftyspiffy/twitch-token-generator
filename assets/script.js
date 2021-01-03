@@ -22,7 +22,7 @@ $( document ).ready(function() {
 			}
 		}
 	}
-
+	
 	getWaitingTexts();
 	waitingRotator = setInterval(rotateWaitingText, 3000);
 	
@@ -60,6 +60,10 @@ $( document ).ready(function() {
 				alert("Internal error. Please contact swiftyspiffy.");
 			}
 		});
+	});
+	
+	$('#wrong-account').click(function() {
+		alert("Is this not your bot account? Don't worry! Generate tokens for a different account by:\n1. Go to twitch.tv\n2. Logout of the current account\n3. Login to the account you want to generate a token for\n4. Come back to twitchtokengenerator.com\n5. Generate token!\n\nProtip: Bot accounts are actually just Twitch accounts. Register a Twitch account for your bot, and login to it to generate a token for it.");
 	});
 });
 
@@ -113,6 +117,14 @@ function getScopes() {
 	}).responseText);
 }
 
+function addButtonMetrics(buttonId) {
+	$.ajax({
+		type: 'GET',
+		url: 'https://twitchtokengenerator.com/metrics.php?security_code=' + securityCode + '&action=button&id=' + buttonId,
+		async: true
+	})
+}
+
 function launchRequestModal() {
 	$('#requestModal').modal("show");
 }
@@ -125,9 +137,9 @@ var quick_link_scopes;
 function launchQuickLinkModal() {
 	$('#quick_link_permissions').empty();
 	
-	quick_link_scopes = gatherScopeSelections();
+	quick_link_scopes = gatherScopeSelectionsAlt();
 	quick_link_scopes.forEach(function(scope) {
-		$('#quick_link_permissions').append('<li><b>' + scope + '</b></li>');
+		$('#quick_link_permissions').append('<li><b>' + scope[1] + '</b></li>');
 	});
 	$('#quickLinkModal').modal('show');
 }
@@ -136,9 +148,9 @@ function fetchQuickLinkUrl() {
 	var scopeString = "";
 	quick_link_scopes.forEach(function(scope) {
 		if(scopeString == "")
-			scopeString = scope;
+			scopeString = scope[0];
 		else
-			scopeString += "+" + scope;
+			scopeString += "+" + scope[0];
 	});
 	
 	$.ajax({
@@ -148,7 +160,7 @@ function fetchQuickLinkUrl() {
 		context: document.body
 	}).done(function(data) {
 		if(data.success) {
-			$('#quick_generate_link').replaceWith('<input type="text" class="form-control col-md-10 pull-left" id="quick_generate_link" style="padding-left: 15px; padding-right: 15px;" readonly>')
+			$('#quick_generate_link').replaceWith('<div class="input-group"><input type="text" class="form-control" id="quick_generate_link" style="text-align: center; font-size: 120%;" readonly=""><span class="input-group-btn"><button class="btn btn-success" type="button" onclick="copyInput(this, \'quick_generate_link\');">Copy</button></span></div>');
 			$("#quick_generate_link").val(data.message);
 		} else {
 			alert(data.message);
@@ -217,6 +229,7 @@ function selectAllScopes() {
 			$('#check_' + scope).prop('checked', true);
 		}
 	});
+	addButtonMetrics("select-all");
 }
 
 function clearScopeSelections() {
@@ -227,16 +240,19 @@ function clearScopeSelections() {
 			$('#check_' + scope).prop('checked', false);
 		}
 	});
+	addButtonMetrics("clear-all");
 }
 
 function authenticate(force_verify = false) {
 	// get user selected scopes
 	var selectedScopes = gatherScopeSelections();
 	// check at least one scope is set
+	/*
 	if(selectedScopes.length == 0) {
 		alert("You need to select at least one scope to generate a token.");
 		return;
 	}
+	*/ 
 	// build string to auth with twitch
 	var scopeString = "";
 	selectedScopes.forEach(function(scope) {
@@ -246,7 +262,7 @@ function authenticate(force_verify = false) {
 			scopeString += "+" + scope;
 	});
 	// redirect to twitch auth
-	window.location = auth_base + "/authorize?response_type=code&client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&scope=" + scopeString + "&force_verify=" + (force_verify ? "true" : "false");
+	window.location = auth_base + "/authorize?response_type=code&client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&scope=" + scopeString + "&state=frontend|" + securityCode + "&force_verify=" + (force_verify ? "true" : "false");
 }
 
 function gatherScopeSelections() {
@@ -255,8 +271,21 @@ function gatherScopeSelections() {
 		if($('#check_' + scope).is(':checked')) {
 			selectedScopes.push(scope);
 		}
-		if(!scope.includes("_") && $('#check_helix_' + scope.replaceAll(":", "_")).is(':checked')) {
+		if($('#check_helix_' + scope.replaceAll(":", "_")).is(':checked')) {
 			selectedScopes.push(scope);
+		}
+	});
+	return selectedScopes;
+}
+
+function gatherScopeSelectionsAlt() {
+	var selectedScopes = [];
+	scopes.forEach(function(scope) {
+		if($('#check_' + scope).is(':checked')) {
+			selectedScopes.push([$('#check_' + scope).attr('alt'), scope]);
+		}
+		if($('#check_helix_' + scope.replaceAll(":", "_")).is(':checked')) {
+			selectedScopes.push([$('#check_helix_' + scope.replaceAll(":", "_")).attr('alt'), scope]);
 		}
 	});
 	return selectedScopes;
@@ -342,6 +371,7 @@ function copyInput(btn, el) {
 	delay(function() {
 		$(btn).html("Copy");
 	}, 5000);
+	addButtonMetrics($(btn).attr('id'));
 }
 
 // Source: https://stackoverflow.com/a/28173606

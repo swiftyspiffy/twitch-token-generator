@@ -6,7 +6,7 @@ if(count($args) == 1) {
 	if($resp['success']) {
 		$username = $dao->getUsername($resp['access']);
 		$dao->insertRefreshRequest(1, $username, $_SERVER['REMOTE_ADDR']);
-		exit(json_encode(array('success' => true, 'token' => $resp['access'], 'refresh' => $resp['refresh'])));
+		exit(json_encode(array('success' => true, 'token' => $resp['access'], 'refresh' => $resp['refresh'], 'client_id' => API_CLIENT_ID)));
 	} else {
 		$dao->insertRefreshRequest(0, "", $_SERVER['REMOTE_ADDR']);
 		exit(json_encode(array('success' => false, 'error' => 22, 'message' => 'Invalid refresh token received.')));

@@ -79,7 +79,7 @@ var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 function fireEmail($email, $name, $token, $refresh, $scopes, $username) {
 	$to      = $email;
 	$subject = 'TwitchTokenGenerator.com - Request Successful';
-	$message = 'Hello '.$name."!\n\nYour TwitchTokenGenerator request has been completed successfully!\n\nUsername: ".$username."\nScopes Requested: ".$scopes."\nAccess Token: ".$token."\nRefresh Token: ".$refresh."\n\nCheers,\nswiftyspiffy";
+	$message = 'Hello '.$name."!\n\nYour TwitchTokenGenerator request has been completed successfully!\n\nUsername: ".$username."\n\nScopes Requested: ".$scopes."\n\nAccess Token: ".$token."\n\nRefresh Token: ".$refresh."\n\nClient Id: ".FRONTEND_CLIENT_ID."\n\nCheers,\nswiftyspiffy";
 	$headers = 'From: requests@twitchtokengenerator.com' . "\r\n" .
 		'Reply-To: noreply@twitchtokengenerator.com' . "\r\n" .
 		'X-Mailer: PHP/' . phpversion();

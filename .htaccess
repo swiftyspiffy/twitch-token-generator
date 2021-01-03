@@ -1,3 +1,18 @@
+Order Deny,Allow
+Deny from 204.12.217.130 95.216.5.232
+
 RewriteEngine On 
 RewriteCond %{SERVER_PORT} 80 
 RewriteRule ^(.*)$ https://twitchtokengenerator.com/$1 [R,L]
+<Files 403.shtml>
+order allow,deny
+allow from all
+</Files>
+
+deny from 81.92.203.76
+deny from 81.92.203.0/24
+deny from 84.66.181.27
+deny from 94.109.185.22
+deny from 90.108.238.38
+deny from 73.245.107.0
+deny from 180.150.32.18

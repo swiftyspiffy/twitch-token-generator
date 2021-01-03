@@ -1,13 +1,38 @@
 <?
 include("dao.php");
 include("twitchtv.php");
+include("encrypt_decrypt.php");
 
 $dao = new dao();
-
 $access_token = "";
 $id = "";
 $username = "";
-if(isset($_GET['code'])) {
+$logo = "";
+$securityCheckPass = false;
+$access_token = "";
+$refresh_token = "";
+
+// attempt to detect malicious referrers
+$referrer = "not_set";
+if(isset($_SERVER['HTTP_REFERER'])) { $referrer = $_SERVER['HTTP_REFERER']; }
+$dao->insertReferrer($referrer);
+
+if(isset($_GET['state'])) {
+	// **************************************************
+	// Portion of code removed to preserve site security
+	// **************************************************
+}
+
+// log when security code is missing, as likely malicious
+if(!$securityCheckPass) {
+	$state = "not_set";
+	if(isset($_GET['state'])) {
+		$state = $_GET['state'];
+	}
+	$dao->insertMissingSecurityCode($_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+}
+
+if(isset($_GET['code']) && $securityCheckPass) {
 	$data = getAccessToken($_GET['code'], "frontend");
 	$access_token = $data['access'];
 	$refresh_token = $data['refresh'];
@@ -15,39 +40,51 @@ if(isset($_GET['code'])) {
 	$username = $dao->getUsername($access_token);
 	if($username == null)
 	    $username = "[Not set]";
-	$country = $dao->getCountry($_SERVER['REMOTE_ADDR']);    
+	$country = $dao->getCountry($_SERVER['REMOTE_ADDR']);  
 	
-	$spamRules = $dao->getSpamRules();
-	$spamResult = isSpam($spamRules, $_SERVER['REMOTE_ADDR'], $_GET['scope'], $country, $username, $_SERVER['HTTP_USER_AGENT']);
-	
+	$scope = "";
 	if(isset($_GET['scope'])) {
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], $_GET['scope'], $country, $username, $_SERVER['HTTP_USER_AGENT'], $spamResult);
-		$udata = $dao->getUserdata($username, $access_token);
-		$partner = $udata['partner'] ? "1" : "0";
-		$dao->logMetadata($username, $udata['userid'], $udata['followers'], $udata['views'], $partner);
-	} else {
-		$dao->logUsage($_SERVER['REMOTE_ADDR'], "", $country, $username, $_SERVER['HTTP_USER_AGENT'], $spamResult);
+		$scope = $_GET['scope'];
+	}
+	$spamRules = $dao->getSpamRules();
+	$spamResult = isSpam($spamRules, $_SERVER['REMOTE_ADDR'], $scope, $country, $username, $_SERVER['HTTP_USER_AGENT']);
+	if(isBotter($dao, $username) == "1") {
+		// **************************************************
+		// Portion of code removed to preserve site security
+		// **************************************************
 	}
 	
-	if(isset($_GET['state'])) {
-		exit(header("Location: https://twitchtokengenerator.com/request/".$_GET['state']."/".$access_token."/".$refresh_token));
-	}
+	$udata = $dao->getUserdata($username, $access_token);
+	$userid = $udata['userid'];
+	$partner = $udata['partner'] ? "1" : "0";
+	$logo = $udata['logo'];
+	$scopes = getScopes($access_token);
+	$dao->logMetadata($username, $udata['userid'], $udata['followers'], $udata['views'], $partner);
 	
 	if(strlen($spamResult) > 0) {
-	    $access_token = genFakeToken(30);
-		$refresh_token = genFakeToken(50);
+		// **************************************************
+		// Portion of code removed to preserve site security
+		// **************************************************
 	}
 	
 	if($username != "[Not set]") {
 		$id = generateRandomString();
 		$dao->insertRecaptchaListing($id, $access_token, $refresh_token, $username);
+		$dao->insertRecaptchaCompletionListing($id, $userid, $username);
 		$access_token = "Please complete the Captcha";
 		$refresh_token = "Please complete the Captcha";
+	}
+	
+	if(strlen($spamResult) > 0) {
+		$dao->insertMissingSecurityCode($_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
 	}
 }
 	
 $scopes = $dao->getScopes();
 	
+// **************************************************
+// Portion of code removed to preserve site security
+// **************************************************
 ?>
 
 <!DOCTYPE html>
@@ -60,6 +97,9 @@ $scopes = $dao->getScopes();
 		echo 'var captchaId = "'.$id.'";';
 	} else {
 		echo 'var captchaId = "";';
+	}
+	if($securityLocation == "1") {
+		echo 'var securityCode = "'.$securityCode.'";';
 	}
 	?>
 </script>
@@ -181,7 +221,7 @@ $scopes = $dao->getScopes();
 			<h3 class="panel-title text-center">Twitch Token Generator Information</h3>
 		</div>
 		<div class="panel-body">
-			<span>This tool is used to generate tokens for use with the Twitch API and Twitch Chat! To use the tool, simply select the scopes you want and click 'Generate Token!'. You will be prompted by Twitch to authorize your account with the selected scopes. Upon authorization, your access token will be placed in the textbox that says "Token will appear here..." .</span>
+			<span>This tool is used to generate tokens for use with the Twitch API and Twitch Chat! To use the tool, simply select the scopes you want and click 'Generate Token!'. You will be prompted by Twitch to authorize your account with the selected scopes. Upon authorization, your access token will be placed in the textbox that says "Token will appear here..." . <br><b>Starting May 1st, all Helix API calls must use the CLIENT ID associated with the generated OAuth access token. TwitchTokenGenerator.com has a next textbox that has the CLIENT ID now.</b></span>
 		</div>
 	</div>
 	
@@ -194,12 +234,27 @@ $scopes = $dao->getScopes();
 			<table class="table table-striped">
 				<tbody>
 					<tr>
+						<td style="width: 20%;" class="text-center"><strong>TWITCH ACCOUNT</strong></td>
+						<td>
+							<div class="row">
+								<div class="col-sm-4"></div>
+								<div class="col-sm-1">
+									<img style="width: 35px; height: 35px;" src="<? echo $logo; ?>" alt="..." class="img-circle">
+								</div>
+								<div class="col-sm-3">
+									<b><? echo $username; ?> <a id="wrong-account" href="#">(wrong?)</a></b>
+								</div>
+								<div class="col-sm-4"></div>
+							</div>
+						</td>
+					</tr>
+					<tr>
 						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
 						<td style="width: 80%;" class="text-center">
-							<div class="input-group">
+							<div class="input-group input-group-lg">
 								<input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $access_token; ?>" placeholder="Access Token will appear here..." readonly>
 								<span class="input-group-btn">
-									<button class="btn btn-success" type="button" onclick="copyInput(this, 'access');">Copy</button>
+									<button class="btn btn-lg btn-success" id="copy_access-token" type="button" onclick="copyInput(this, 'access');">Copy</button>
 								</span>
 							</div>
 							
@@ -208,10 +263,21 @@ $scopes = $dao->getScopes();
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
 						<td style="width: 80%;" class="text-center">
-							<div class="input-group">
+							<div class="input-group input-group-lg">
 								<input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo $refresh_token; ?>" placeholder="Refresh Token will appear here..." readonly>
 								<span class="input-group-btn">
-									<button class="btn btn-success" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
+									<button class="btn btn-lg btn-success" id="copy_refresh-token" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
+								</span>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>CLIENT ID</strong></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group input-group-lg">
+								<input type="text" class="form-control" id="clientid" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo FRONTEND_CLIENT_ID; ?>" placeholder="Client ID will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-lg btn-success" id="copy_client-id" type="button" onclick="copyInput(this, 'clientid');">Copy</button>
 								</span>
 							</div>
 						</td>
@@ -224,10 +290,10 @@ $scopes = $dao->getScopes();
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>ACCESS TOKEN</strong></td>
 						<td style="width: 80%;" class="text-center">
-							<div class="input-group">
+							<div class="input-group input-group-lg">
 								<input type="text" class="form-control" id="access" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Access Token will appear here..." readonly>
 								<span class="input-group-btn">
-									<button class="btn btn-success" type="button" onclick="copyInput(this, 'access');">Copy</button>
+									<button class="btn btn-lg btn-success" id="copy_access-token" type="button" onclick="copyInput(this, 'access');">Copy</button>
 								</span>
 							</div>
 						</td>
@@ -235,10 +301,21 @@ $scopes = $dao->getScopes();
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
 						<td style="width: 80%;" class="text-center">
-							<div class="input-group">
+							<div class="input-group input-group-lg">
 								<input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 200%; color: #a31824;" value="ERROR: <? echo $_GET['error']; ?>" placeholder="Refresh Token will appear here..." readonly>
 								<span class="input-group-btn">
-									<button class="btn btn-success" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
+									<button class="btn btn-lg btn-success" id="copy_refresh-token" type="button" onclick="copyInput(this, 'refresh');">Copy</button>
+								</span>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>CLIENT ID</strong></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group input-group-lg">
+								<input type="text" class="form-control" id="clientid" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo FRONTEND_CLIENT_ID; ?>" placeholder="Client ID will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-lg btn-success" id="copy_client-id" type="button" onclick="copyInput(this, 'clientid');">Copy</button>
 								</span>
 							</div>
 						</td>
@@ -255,6 +332,17 @@ $scopes = $dao->getScopes();
 					<tr>
 						<td style="width: 20%;" class="text-center"><strong>REFRESH TOKEN</strong></td>
 						<td style="width: 80%;" class="text-center"><input type="text" class="form-control" id="refresh" style="text-align: center; font-size: 120%;" placeholder="Refresh Token will appear here..." readonly></td>
+					</tr>
+					<tr>
+						<td style="width: 20%;" class="text-center"><strong>CLIENT ID</strong></td>
+						<td style="width: 80%;" class="text-center">
+							<div class="input-group input-group-lg">
+								<input type="text" class="form-control" id="clientid" style="text-align: center; font-size: 200%; color: #009900;" value="<? echo FRONTEND_CLIENT_ID; ?>" placeholder="Client ID will appear here..." readonly>
+								<span class="input-group-btn">
+									<button class="btn btn-lg btn-success" id="copy_client-id" type="button" onclick="copyInput(this, 'clientid');" style="height: 120%;">Copy</button>
+								</span>
+							</div>
+						</td>
 					</tr>
 				</tbody>
 			</table>
@@ -280,7 +368,7 @@ $scopes = $dao->getScopes();
 				<?
 			foreach($scopes['v5'] as $scope) {
 				echo '<tbody id="available_tokens">';
-					echo '<td style="width: 20%;" class="text-center"><code><input id="check_'.$scope['scope'].'" type="checkbox"></code></td>';
+					echo '<td style="width: 20%;" class="text-center"><input id="check_'.$scope['scope'].'" alt="'.$scope['id'].'" type="checkbox"></td>';
 					echo '<td style="width: 20%;" class="text-center"><code>'.$scope['scope'].'</code></td>';
 					echo '<td style="width: 60%;" class="text-center">'.$scope['desc'].'</td>';
 				echo '</tbody>';
@@ -293,7 +381,7 @@ $scopes = $dao->getScopes();
                 <?
 			foreach($scopes['helix'] as $scope) {
 				echo '<tbody id="available_tokens">';
-					echo '<td style="width: 20%;" class="text-center"><code><input id="check_helix_'.str_replace(":", "_", $scope['scope']).'" type="checkbox"></code></td>';
+					echo '<td style="width: 20%;" class="text-center"><input id="check_helix_'.str_replace(":", "_", $scope['scope']).'" alt="'.$scope['id'].'"  type="checkbox"></td>';
 					echo '<td style="width: 20%;" class="text-center"><code>'.$scope['scope'].'</code></td>';
 					echo '<td style="width: 60%;" class="text-center">'.$scope['desc'].'</td>';
 				echo '</tbody>';
@@ -315,6 +403,14 @@ $scopes = $dao->getScopes();
 			</div>
 		</div>
 	</div>
+
+<?
+if($securityLocation == "2") {
+	echo '<script>';
+		echo 'var securityCode = "'.$securityCode.'";';
+	echo '</script>';
+}
+?>
 
 	<div class="panel panel-primary">
         <div class="panel-heading">
@@ -441,6 +537,12 @@ ga('send', 'pageview');
 /* --- Runtime PHP Generated JS Vars START -- */
 var authSuccessful = <? echo (strlen($access_token) > 1 ? "true" : "false"); ?>;
 /* --- Runtime PHP Generated JS Vars END -- */
+
+<?
+if($securityLocation == "3") {
+	echo 'var securityCode = "'.$securityCode.'";';
+}
+?>
 </script>
 </html>
 
@@ -457,25 +559,24 @@ function generateRandomString($length = 10) {
 }
 
 function isSpam($rules, $ip, $scope, $country, $username, $useragent) {
-    foreach($rules as $rule) {
-        if(strlen($rule['ip']) > 0 && $rule['ip'] != $ip)
-            return false;
-        if(strlen($rule['scopes']) > 0 && $rule['scopes'] != $scope)
-            return false;
-        if(strlen($rule['country']) > 0 && $rule['country'] != $country)
-            return false;
-        if(strlen($rule['username']) > 0 && $rule['username'] != $username)
-            return false;
-        if(strlen($rule['useragent']) > 0 && $rule['useragent'] != $useragent)
-            return false;
-            
-        return $rule['id'];
-    }
-    return "";
+	// **************************************************
+	// Portion of code removed to preserve site security
+	// **************************************************
 }
 
-function genFakeToken($length = 10) {
-    return substr(str_shuffle(str_repeat($x='0123456789abcdefghijklmnopqrstuvwxyz', ceil($length/strlen($x)) )),1,$length);
+function isBotter($dao, $username) {
+	// **************************************************
+	// Portion of code removed to preserve site security
+	// **************************************************
+}
+
+function getScopes($accessKey) {
+	$results = file_get_contents("https://twitchtokengenerator.com/api/forgot/".$accessKey);
+
+	$json = json_decode($results, true);
+	$scopes = $json['data']['scopes'];
+
+	return join(" ", $scopes);
 }
 
 ?>

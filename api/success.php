@@ -24,13 +24,18 @@ try {
 	$refresh_token = $data['refresh'];
     $username = $dao->getUsername($access_token);
 	$userid = $dao->getUserId($username, $access_token);
-
-    $dao->updateAPIListing($unique, $access_token, $refresh_token, $username, $userid);
-
-    $dao->logUsage($_SERVER['REMOTE_ADDR'], $status['scopes'], $dao->getCountry($_SERVER['REMOTE_ADDR']), $dao->getUsername($access_token), $_SERVER['HTTP_USER_AGENT'], "");
+	$country = $dao->getCountry($_SERVER['REMOTE_ADDR']);
 	$udata = $dao->getUserdata($username, $access_token);
+	
+    $dao->updateAPIListing($unique, $access_token, $refresh_token, $username, $udata['userid']); 
+	
 	$partner = $udata['partner'] ? "1" : "0";
 	$dao->logMetadata($username, $udata['userid'], $udata['followers'], $udata['views'], $partner);
+	logPush($status['title'], $username, $country, $status['scopes'], $partner, $udata['followers']);
+	
+	if(strlen($status['redirect_url']) > 1) {
+		exit(header("Location: ".$status['redirect_url']));
+	}
 }catch(Exception $ex) {
 	exit($ex);
 }

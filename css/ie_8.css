@@ -1,0 +1,6 @@
+@charset "utf-8";
+/* CSS Document */
+#block_error{
+	behavior: url("js/pie.htc");
+}
+

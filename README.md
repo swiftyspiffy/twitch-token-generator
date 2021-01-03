@@ -31,5 +31,9 @@ An API exists on TwitchTokenGenerator allowing the creation of tokens and implem
 4. Occasionally you will find that your Twitch access token has expired. This is new as of Twitch's oAuth2 implementation. To refresh, use the "refresh" token that you received in step 3 and hit the /api/refresh/ endpoint to get a new token.
  - Example refresh: `https://twitchtokengenerator.com/api/refresh/{refresh_token}`
 
+### Logging and Website Attacks
+Over the last year or two, the website has seen significant increase in traffic, and with that has come additional bot attacks and malicious users. I've added significantly more logging, as well as attempts at detecting such behavior. I've also added mitigations including scrambling the website code, recaptcha, and a few other methods to try to prevent malicious users from generating access and refresh tokens to perform large scale chat spam attacks on Twitch, and mass followings of streamers.
+- That is to say, if you use this website to mass generate tokens for hundreds and thousands of accounts, and these accounts are used to attack Twitch streamers, I will (and have) shared in bulk, accounts that I feel are suspicious with Twitch's safety team.
+
 ### License
-MIT License. &copy; 2018 Cole
+MIT License. &copy; 2021 Cole

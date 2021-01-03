@@ -22,7 +22,7 @@ function buildStats($stats) {
 			}
 		} else {
 			$country = $stat['country'];
-			if (!empty($country)) {
+			if (!empty($country) && $country != "not_set") {
 				if(in_array($country, $countryNames)) {
 					$countryResults[$country]++;
 				} else {

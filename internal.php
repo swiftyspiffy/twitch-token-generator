@@ -18,6 +18,7 @@ if(!isValid($captcha, $ip))
 $dao = new dao();
 $result = $dao->getRecaptchaListing($id);
 $dao->deleteRecaptchaListing($id);
+$dao->finishRecaptchaCompletionListing($id);
 
 if(!$result['found'])
 	exit(json_encode(array('success' => false, 'message' => "Generation data not found on server!")));

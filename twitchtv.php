@@ -18,7 +18,7 @@ function getAccessToken($code, $type) {
 		default:
 			exit("unknown getAccessToken type");
 	}
-	$curl = curl_init("https://api.twitch.tv/kraken/oauth2/token");
+	$curl = curl_init("https://id.twitch.tv/oauth2/token");
 	curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 	curl_setopt($curl, CURLOPT_POST, 1);

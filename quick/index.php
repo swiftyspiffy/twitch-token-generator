@@ -13,7 +13,6 @@ if (strpos($_GET['id'], '/') !== false) {
 } else {
     $action = $_GET['id'];
 }
-
 switch($action) {
 	case "create":
 		$scopes = $args[0];

@@ -1,0 +1,93 @@
+html, body {
+	height:100%;
+	margin:0;
+	padding:0;
+	width:100%;
+	background-color:#f0f0f0;
+	color:#383D43;
+	font-family:Tahoma,Verdana,Arial,Helvetica,sans-serif;
+	font-size:12px;
+}
+table {
+	margin:0;
+	padding:0;
+	height:100%;
+}
+.mainContainer {
+	width:780px;
+	margin:0 auto;
+}
+.mainContainer td {
+	vertical-align:middle;
+	width:780px;
+	text-align:left
+}
+#wrapper {
+	border:0px solid #f6f6f6;
+}
+#wrapper .curveT {
+	background:transparent url(../images/curve-top.gif) no-repeat left top;	
+	height:7px;
+}
+#wrapper .curveB {
+	background:transparent url(../images/curve-bot.gif) no-repeat left top;	
+	height:7px;
+}
+
+#wrapper .header {
+	clear:both;
+	width:100%;
+	height:51px;
+	vertical-align:middle;
+	padding-top:12px;
+	background:#ffffff;
+}
+#wrapper .description {
+	clear:both;
+	margin:0px;
+	padding: 0px 10px 4px;
+	background:#ffffff;
+}
+#wrapper .welcome {
+	padding:10px;
+	background:#EEEEFF;
+	font-size:15px;
+}
+#wrapper .description .links {
+	margin-top:10px;
+	padding:10px;
+	background:#EEEEFF;
+}
+#wrapper .links ul {
+	margin:0;
+	padding:0;
+	list-style-type:none;
+	float:left;
+	width:48%;
+}
+#wrapper .links ul li {
+	margin:0;
+	padding: 0px 0px 0px 12px;
+	line-height:25px;
+}
+#wrapper .links ul li a {
+	font-weight:bold;
+	color:#003399;
+	text-decoration:none;
+	vertical-align:middle;
+}
+#wrapper .links ul li a img {
+	padding-right:7px;
+	margin-top:-7px;
+}
+div.clear {
+	clear:both;
+	height:1px;
+}
+.leftDiv {
+	float:left;
+}
+.rightDiv {
+	float:right;
+	padding:8px 25px 0px 0px;
+}
