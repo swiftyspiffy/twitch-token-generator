@@ -12,13 +12,15 @@ An API exists on TwitchTokenGenerator allowing the creation of tokens and implem
 
 1. Ping the create endpoint to get a link to give to user:
  - Create Endpoint: `https://twitchtokengenerator.com/api/create`
- - Required Rarameters:
+ - Required parameters:
  
    - base64 encoded application title
   
    - scope list with + delimiter
   
- - Example create: `https://twitchtokengenerator.com/api/create/QXV0aEZsb3dFeGFtcGxlIFRlc3QgQXBwbGljYXRpb24=/chat_login+user_read`
+ - Example create: `https://twitchtokengenerator.com/api/create/QXV0aEZsb3dFeGFtcGxlIFRlc3QgQXBwbGljYXRpb24=/chat:read+chat:edit`
+
+The scope list must contain currently supported [Twitch OAuth scopes](https://dev.twitch.tv/docs/authentication/scopes/). The former `chat_login` example is obsolete and is no longer accepted by Twitch.
 2. Response will be a json object including success bool, an id, and a message string containing the auth url. Present the URL to the program user.
 3. Your application should ping the status endpoint for updates on authorization.  The status will return error 3 "Not authorized yet" until the user authorizes their account. After authorization, the status endpoint will return their credentials on the first ping post-authorization. Additional pings will return error 4 "API instance has already expired". This is to protect the user.
  - Status endpoint: `https://twitchtokengenerator.com/api/status`
